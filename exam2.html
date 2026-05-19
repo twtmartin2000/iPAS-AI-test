@@ -111,6 +111,13 @@
         <div class="flex-1 overflow-y-auto p-3" id="toc-container">
             <!-- Populated by JS -->
         </div>
+
+        <!-- 👉 整合的「返回考科一」按鈕（固定於側邊欄底部） 👈 -->
+        <div class="p-4 bg-white border-t border-slate-100 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
+            <a href="index.html" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm rounded-xl border-2 border-brand-200 text-brand-700 font-bold transition-all hover:bg-brand-50 hover:border-brand-400">
+                <span class="text-lg">⬅️</span> 返回 考科一戰情室
+            </a>
+        </div>
     </aside>
 
     <!-- MAIN CONTENT AREA -->
@@ -165,7 +172,7 @@
                             <span>📊</span> 考科二知識點分佈
                         </h2>
                         <div class="chart-container"><canvas id="overviewChart"></canvas></div>
-                        <!-- 新增常駐顯示的圖例與數據容器 -->
+                        <!-- 顯示圖例與數據 -->
                         <div id="chart-legend-container" class="mt-6 space-y-3"></div>
                     </div>
                 </div>
@@ -583,4 +590,4 @@
         });
     </script>
 </body>
-</html>
+</html>}
