@@ -75,35 +75,42 @@
 <body class="bg-brand-50 font-sans antialiased h-screen overflow-hidden flex selection:bg-brand-200 selection:text-brand-900">
 
     <!-- OVERLAY (Mobile) -->
-    <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/50 z-30 hidden transition-opacity lg:hidden" onclick="app.toggleSidebar()"></div>
+    <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/50 z-30 hidden transition-opacity lg:hidden backdrop-blur-sm" onclick="app.toggleSidebar()"></div>
 
     <!-- SIDEBAR (Table of Contents) -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 md:w-80 bg-slate-50 border-r border-slate-200 flex flex-col z-40 sidebar-transition -translate-x-full lg:translate-x-0">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 md:w-80 bg-slate-50 border-r border-slate-200 flex flex-col z-40 sidebar-transition -translate-x-full lg:translate-x-0 shadow-2xl lg:shadow-none">
         <!-- Sidebar Header -->
         <div class="h-16 flex items-center justify-between px-5 border-b border-slate-200 bg-white shrink-0">
             <div class="flex items-center gap-2 text-brand-700">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                <span class="text-xl">📚</span>
                 <h1 class="font-bold tracking-wide">考點目錄</h1>
             </div>
             <button onclick="app.toggleSidebar()" class="lg:hidden p-2 text-slate-500 hover:text-slate-800 rounded-md hover:bg-slate-100">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <span class="text-xl">✕</span>
             </button>
         </div>
 
         <!-- Sidebar Actions -->
-        <div class="p-3 bg-white border-b border-slate-100 shrink-0 space-y-2">
-            <button onclick="app.showOverview()" id="btn-toc-overview" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md bg-brand-50 text-brand-700 font-medium transition-colors">
+        <div class="p-4 bg-white border-b border-slate-100 shrink-0 space-y-3 shadow-sm z-10">
+            <button onclick="app.showOverview()" id="btn-toc-overview" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg bg-brand-100 text-brand-800 font-bold transition-all hover:bg-brand-200">
                 <span>📊</span> 閱讀指南與數據總覽
             </button>
             <div class="relative">
-                <svg class="w-4 h-4 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                <input type="text" id="search-input" placeholder="搜尋題意或關鍵字..." class="w-full pl-9 pr-3 py-2 text-sm bg-slate-100 border-transparent rounded-md focus:bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all outline-none">
+                <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
+                <input type="text" id="search-input" placeholder="搜尋題意或關鍵字..." class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-200 transition-all outline-none shadow-inner">
             </div>
         </div>
 
         <!-- Toc List -->
-        <div class="flex-1 overflow-y-auto p-2" id="toc-container">
+        <div class="flex-1 overflow-y-auto p-3" id="toc-container">
             <!-- Populated by JS -->
+        </div>
+
+        <!-- 👉 整合的「前往考科二」按鈕（固定於側邊欄底部） 👈 -->
+        <div class="p-4 bg-white border-t border-slate-100 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
+            <a href="exam2.html" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm rounded-xl border-2 border-brand-200 text-brand-700 font-bold transition-all hover:bg-brand-50 hover:border-brand-400">
+                <span class="text-lg">➡️</span> 前往 考科二戰情室
+            </a>
         </div>
     </aside>
 
@@ -111,12 +118,12 @@
     <main id="main-content" class="flex-1 flex flex-col h-full bg-paper w-full transition-all duration-300 lg:ml-[20rem]">
         
         <!-- Top Navigation Bar -->
-        <header class="h-16 flex items-center justify-between px-4 lg:px-8 border-b border-slate-200/60 bg-white/80 backdrop-blur-sm shrink-0 sticky top-0 z-20">
+        <header class="h-16 flex items-center justify-between px-4 lg:px-8 border-b border-slate-200/60 bg-white/80 backdrop-blur-sm shrink-0 sticky top-0 z-20 shadow-sm">
             <div class="flex items-center gap-3">
-                <button onclick="app.toggleSidebar()" class="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md transition-colors" title="切換目錄">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                <button onclick="app.toggleSidebar()" class="p-2 -ml-2 text-slate-600 hover:bg-slate-100 hover:text-brand-700 rounded-md transition-colors" title="切換目錄">
+                    <span class="text-xl">☰</span>
                 </button>
-                <span class="text-sm font-medium text-slate-500 hidden sm:inline-block">iPAS 考科一：人工智慧基礎概論</span>
+                <span class="text-sm font-bold text-brand-700 hidden sm:inline-block bg-brand-50 px-3 py-1 rounded-full border border-brand-200">iPAS 考科一：人工智慧基礎概論</span>
             </div>
             
             <div class="flex items-center gap-1" id="top-nav-controls">
@@ -145,7 +152,7 @@
                             <li><strong>實務提案：</strong> 將考題情境投射至真實企業，提供包含 <code>痛點</code>、<code>解方</code>、<code>PoC驗證</code>、<code>風險</code> 與 <code>人機協作</code> 五大模塊的具體商業提案範本。</li>
                         </ul>
                         <div class="mt-6 p-4 bg-amber-50 text-amber-800 rounded-lg text-sm flex items-start gap-3">
-                            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-lg">⌨️</span>
                             <p><strong>操作提示：</strong> 可使用左側目錄快速跳轉，或使用畫面上方/下方的按鈕循序閱讀。電腦版支援鍵盤左(←)右(→)方向鍵翻頁。</p>
                         </div>
                     </div>
@@ -165,32 +172,30 @@
                 
                 <div class="mt-12 text-center">
                     <button onclick="app.goToQuestion(1)" class="inline-flex items-center gap-2 px-8 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg">
-                        開始閱讀第一題 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        開始閱讀第一題 <span>🚀</span>
                     </button>
                 </div>
             </div>
 
             <!-- QUESTION VIEW (E-Book Style) -->
-            <div id="view-question" class="max-w-3xl mx-auto hidden pb-20">
+            <div id="view-question" class="max-w-4xl mx-auto hidden pb-20">
                 <!-- Populated by JS -->
             </div>
 
         </article>
 
         <!-- Bottom Navigation Bar (Floating) -->
-        <footer id="bottom-nav" class="hidden h-16 border-t border-slate-200/60 bg-white/90 backdrop-blur-sm shrink-0 flex items-center justify-between px-4 lg:px-8 z-20">
-            <button onclick="app.navigate(-1)" id="btn-prev" class="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                <span class="font-medium">上一題</span>
+        <footer id="bottom-nav" class="hidden h-20 border-t border-slate-200/60 bg-white/95 backdrop-blur-md shrink-0 flex items-center justify-between px-4 lg:px-12 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <button onclick="app.navigate(-1)" id="btn-prev" class="flex items-center gap-2 px-5 py-3 text-slate-600 hover:text-brand-700 hover:bg-brand-50 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed font-bold">
+                <span class="text-xl">←</span> 上一題
             </button>
             
-            <div class="text-sm font-medium text-slate-400 font-mono tracking-widest" id="page-indicator">
+            <div class="text-sm font-bold text-slate-400 bg-slate-100 px-4 py-1.5 rounded-full shadow-inner" id="page-indicator">
                 -- / --
             </div>
 
-            <button onclick="app.navigate(1)" id="btn-next" class="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                <span class="font-medium">下一題</span>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            <button onclick="app.navigate(1)" id="btn-next" class="flex items-center gap-2 px-5 py-3 text-slate-600 hover:text-brand-700 hover:bg-brand-50 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed font-bold">
+                下一題 <span class="text-xl">→</span>
             </button>
         </footer>
 
@@ -427,10 +432,10 @@
             { id: 29, cat: 4, title: '顯著性圖', q: '利用「顯著性圖（Saliency Map）」來輔助理解深度學習模型行為。何者最符合此技術的主要用途？', opts: ['(A) 量化整體準確度平均影響；', '(B) 標示輸入資料中對單一預測結果影響較大的區域或部分；', '(C) 評估穩定性變化；', '(D) 比較泛化能力'], ans: 'B', 
               exp: '人類渴望知道電腦視覺 AI 到底是看著圖片裡的「哪裡」做出判斷。顯著性圖透過精密梯度反向計算，能以彩色熱力圖形式，高亮標示出輸入影像中，對最終預測結果貢獻最大的具體像素區域。', 
               pain: '醫學影像 AI 輔助系統自信判斷病患 X 光片中有惡性腫瘤。但主治醫師完全無法確認模型究竟是依據肺部的哪一塊陰影做出判斷，基於醫療責任根本不敢輕易採信 AI。', 
-              sol: '將單純的預測機率輸出升級，全面整合顯著性圖技術。比較：Grad-CAM (專為 CNN 設計，計算快但熱力圖較粗略) 對比 Integrated Gradients (理論紮實，能產出像素級更精細熱力圖)。', 
+              sol: '將單純的預測機率輸出升級，全面整合顯著性圖技術。比較：Grad-CAM (適用 CNN，產生粗略熱力圖) 對比 Integrated Gradients (理論紮實，能產出像素級更精細熱力圖)。', 
               poc: '輸入一張確診肺部 X 光片，系統吐出腫瘤機率時需同步覆疊產出彩色熱力圖。實測檢驗該熱力圖中被標示的深紅色高亮區域，是否精確重合於資深醫師人工標註的真實病灶。', 
               risk: '熱力圖經常暴露 AI 致命缺陷：模型可能學到「捷徑」。例如，AI 判斷有病是因為看到圖片邊緣特定醫院儀器的浮水印，而非真正病理特徵，這是極其致命的醫療隱患。', 
-              human: '熱力圖絕非最終診斷。主治醫師簽發報告前，必須強制比對熱力圖，運用專業醫理親自確認 AI 是基於真實病理特徵進行診斷而非被背景雜訊誤導，才能將意見納入決策。' },
+              human: '熱力圖絕非最終診斷。主治醫師簽發報告前，必須強制比對熱力圖，運用專業醫理親自確認 AI 是基於真實病理特徵進行診斷而非背景雜訊誤導，才能將意見納入決策。' },
 
             { id: 30, cat: 2, title: '機器學習分類', q: '銀行想建立洗錢檢測系統，擁有過去 5 年標記為「異常」和「正常」的交易記錄。想自動識別新交易，最適合哪種方法？', opts: ['(A) 監督式學習的分類問題；', '(B) 非監督式學習的分群；', '(C) 強化式學習；', '(D) 關聯規則挖掘'], ans: 'A', 
               exp: '擁有標記為異常/正常的歷史紀錄，決定了它是「監督式學習」；預測目標為異常或正常兩種絕對不同的離散狀態，這決定了它是一個標準的「分類 (Classification) 問題」。', 
@@ -509,7 +514,7 @@
               pain: '金融計量分析師面對長達十年、涵蓋數千檔股票且毫無任何標籤的海量歷史跳動資料，人類大腦根本無法客觀歸納出具備統計意義的「市場狀態模式（如盤整、主升段）」，導致策略開發靈感枯竭。', 
               sol: '破除人工尋找規律迷思，導入時間序列專屬的非監督分群演算法。比較：採用 Time-Series K-Means（運算快，對時間軸微小平移敏感）對比採用 DTW 距離分群（耗時，但能克服趨勢時間軸扭曲錯位）。', 
               poc: '將過去三年大盤完全無人工標註的收盤價變動曲線輸入 DTW 系統中。實測演算法是否能單憑純數學幾何相似度，自動將數萬段混沌曲線，歸納收斂出「劇烈震盪、溫和爬升」等具備人類交易意義的群集。', 
-              risk: '非監督分群是純粹數學盲盒。找出的分類結果可能幾何空間完美，但在現實金融交易中毫無獲利意義。若研發團隊見獵心喜直接將群集特徵掛載於程式交易模組，將面臨被市場無情雙殺的毀滅性風險。', 
+              risk: '非監督分群找出的純粹數學型態可能完全沒有實際金融交易意義，若直接掛載程式交易將產生嚴重投資虧損。', 
               human: '頂尖金融工程師必須對 AI 非監督分群出來的每一個群集結果，進行極度嚴格且殘酷的歷史回測 (Backtesting)，並透過深厚金融常識進行嚴密邏輯驗證，確認其具備真實交易獲利價值後才能採用。' },
 
             { id: 40, cat: 2, title: '不平衡評估指標', q: '產品瑕疵比例極低，模型多數預測為正常品，獲得很高準確率。若希望衡量對瑕疵品的辨識能力，何者最適合作主要指標？', opts: ['(A) F1-score；', '(B) RMSE；', '(C) 準確率(Accuracy)；', '(D) 判定係數(R²)'], ans: 'A', 
@@ -518,7 +523,7 @@
               sol: '徹底改變專案團隊評估思維。廢棄欺騙性的 Accuracy 指標，強力導入「混淆矩陣」視覺化除錯，並硬性規定在模型驗證階段，必須以 F1-score 作為決定模型能否上線的首要唯一綜合評估指標。', 
               poc: '將號稱 99% 準確率的舊模型重新用 F1-score 無情檢視暴露出其趨近零的殘酷真相。動態向下調整模型分類機率閾值 (Threshold)，實測能否在可容忍範圍內顯著提升模型對少數瑕疵類別的敏感度與 F1 總分。', 
               risk: '指標優化是零和遊戲。若工程團隊為了達成高層規定的「拉高 F1-score」KPI，過度極端調低判定瑕疵的閾值，會導致模型如驚弓之鳥般瘋狂產出海量假警報 (False Positives)，徹底癱瘓下游負責複檢的人力。', 
-              human: '溝通有時比寫程式困難。資料科學團隊必須準備直觀簡報，用白話語言向非技術背景廠長清楚解釋「為何準確率 99% 的模型其實是個廢物不能用」，從上到下建立起對不平衡資料的正確評估觀念。' },
+              human: '資料科學團隊必須準備直觀簡報，用白話語言向非技術背景廠長清楚解釋「為何準確率 99% 的模型其實是個廢物不能用」，從上到下建立起對不平衡資料的正確評估觀念。' },
 
             { id: 41, cat: 5, title: 'Flash Attention', q: '關於 Flash Attention 改善 Transformer 注意力機制運算效率的主要效益，敘述何者最正確？', opts: ['(A) 忽略影響小權重降低成本；', '(B) 調整計算與資料處理，減少中間結果儲存，改善速度與資源效率；', '(C) 增加並行處理更多頭部；', '(D) 暫存於快取避免重複計算'], ans: 'B', 
               exp: 'Flash Attention 是革命性底層算子優化技術。它沒有改變注意力機制的數學公式與精準度，而是透過 Tiling (切塊) 技術，極限優化 GPU 記憶體 (HBM 與 SRAM) 間的資料讀寫路徑，減少中間矩陣頻繁存取，達成驚人加速。', 
@@ -534,7 +539,7 @@
               sol: '全面淘汰舊有僵化向量檢索腳本，升級至企業級專業向量資料庫 (Vector DB) 支援動態增刪查改。比較：Milvus（分散式架構，極端適合處理企業海量數據與高頻更新）對比 Qdrant（雲原生資料庫，單機效能極佳）。', 
               poc: '在測試環境實作進階文件分塊與唯一 UUID 追蹤機制。在模擬線上 1000 人同時查詢不中斷服務情況下，後台單獨抽換更新某條爭議性新法規。實測更新完成後前端 RAG 是否能一秒內精準擷取到最新版內容。', 
               risk: '增量更新易引發「知識庫鬼影」危機。若未妥善設計並觸發「舊版廢止文件」的強制刪除連動機制，龐大向量庫內將同時殘留新舊兩版互相衝突知識，導致 AI 隨機撈取產出前後矛盾甚至嚴重違法危險建議。', 
-              human: '系統防呆不如人工作業嚴謹。法遵專員上傳新版法規至後台時不能只按上傳；系統必須強制要求在介面明確勾選點擊「同步作廢並下架關聯之舊版法規」，透過人類行政確認確保知識庫絕對唯一權威性。' },
+              human: '法遵專員上傳新版法規至後台時不能只按上傳；系統必須強制要求在介面明確勾選點擊「同步作廢並下架關聯之舊版法規」，透過人類行政確認確保知識庫絕對唯一權威性。' },
 
             { id: 43, cat: 2, title: '學習模式辨析', q: '下列關於學習模式敘述何者錯誤？(2.非監督需定義輸出 3.半監督僅利用未標註 4.自監督需人工)', opts: ['(A) 2、3、6；', '(B) 2、4、5；', '(C) 1、3、6；', '(D) 2、3、4'], ans: 'D', 
               exp: '綜合測驗題。2錯：非監督沒有正確答案無從定義輸出；3錯：半監督靈魂是「結合」少量標註與大量未標註；4錯：自監督最大突破是利用資料自身結構自動生成偽標籤，完全不需消耗昂貴人工逐筆標註。', 
@@ -621,8 +626,8 @@
                 // Add keyboard navigation
                 document.addEventListener('keydown', (e) => {
                     if (document.getElementById('view-question').classList.contains('hidden')) return;
-                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') this.navigate(1);
-                    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') this.navigate(-1);
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); this.navigate(1); }
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); this.navigate(-1); }
                 });
 
                 // Search functionality
@@ -753,9 +758,7 @@
                     return `
                         <div class="flex items-start gap-3 p-3 md:p-4 rounded-xl ${isAns ? 'bg-emerald-50 border border-emerald-200' : 'bg-white border border-slate-200'} transition-all">
                             <div class="shrink-0 mt-0.5 ${isAns ? 'text-emerald-500' : 'text-slate-300'}">
-                                ${isAns ? 
-                                    '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' : 
-                                    '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"></circle></svg>'}
+                                ${isAns ? '✅' : '⚪'}
                             </div>
                             <div class="reading-content ${isAns ? 'text-emerald-900 font-medium' : 'text-slate-600'}">${opt}</div>
                         </div>
@@ -888,11 +891,11 @@
                 // Add Quick jump buttons to top nav for desktop
                 document.getElementById('top-nav-controls').innerHTML = `
                     <button onclick="app.navigate(-1)" class="p-2 text-slate-400 hover:text-brand-600 hover:bg-slate-100 rounded-md transition-colors ${currentIndex <= 0 ? 'opacity-30 cursor-not-allowed' : ''}" ${currentIndex <= 0 ? 'disabled' : ''}>
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        <span class="font-bold text-xl">←</span>
                     </button>
                     <span class="text-xs font-mono text-slate-400 mx-2">${currentIndex + 1}/${total}</span>
                     <button onclick="app.navigate(1)" class="p-2 text-slate-400 hover:text-brand-600 hover:bg-slate-100 rounded-md transition-colors ${currentIndex >= total - 1 ? 'opacity-30 cursor-not-allowed' : ''}" ${currentIndex >= total - 1 ? 'disabled' : ''}>
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <span class="font-bold text-xl">→</span>
                     </button>
                 `;
             },
