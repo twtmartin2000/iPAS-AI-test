@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPAS 考科一：人工智慧基礎概論-實務提案電子書</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f8fafc',  /* Lighter slate for page background */
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            500: '#3b82f6', /* Blue primary for digital book feel */
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        paper: '#fafaf9' /* Soft paper color for reading area */
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif TC"', '"Source Han Serif TC"', 'serif'],
+                        sans: ['"Inter"', '"Noto Sans TC"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar - Slim and subtle */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Typography optimizations for reading */
+        .reading-content {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #334155; /* Slate 700 - Softer than pure black */
+        }
+        @media (min-width: 768px) {
+            .reading-content { font-size: 1.125rem; }
+        }
+        
+        .reading-content h3, .reading-content h4 { color: #0f172a; } /* Slate 900 */
+        
+        /* Smooth transitions */
+        .sidebar-transition { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .fade-enter { animation: fadeEnter 0.4s ease-out forwards; }
+        
+        @keyframes fadeEnter {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Chart container */
+        .chart-container { position: relative; width: 100%; max-width: 500px; margin: 0 auto; height: 300px; }
+
+        /* Hide sidebar on mobile by default, slide in when needed */
+        .sidebar-open { transform: translateX(0) !important; }
+        
+        /* On desktop, allow content to expand when sidebar is hidden */
+        .content-expanded { margin-left: 0 !important; }
+    </style>
+</head>
+<body class="bg-brand-50 font-sans antialiased h-screen overflow-hidden flex selection:bg-brand-200 selection:text-brand-900">
+
+    <!-- OVERLAY (Mobile) -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/50 z-30 hidden transition-opacity lg:hidden" onclick="app.toggleSidebar()"></div>
+
+    <!-- SIDEBAR (Table of Contents) -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 md:w-80 bg-slate-50 border-r border-slate-200 flex flex-col z-40 sidebar-transition -translate-x-full lg:translate-x-0">
+        <!-- Sidebar Header -->
+        <div class="h-16 flex items-center justify-between px-5 border-b border-slate-200 bg-white shrink-0">
+            <div class="flex items-center gap-2 text-brand-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                <h1 class="font-bold tracking-wide">考點目錄</h1>
+            </div>
+            <button onclick="app.toggleSidebar()" class="lg:hidden p-2 text-slate-500 hover:text-slate-800 rounded-md hover:bg-slate-100">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <!-- Sidebar Actions -->
+        <div class="p-3 bg-white border-b border-slate-100 shrink-0 space-y-2">
+            <button onclick="app.showOverview()" id="btn-toc-overview" class="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md bg-brand-50 text-brand-700 font-medium transition-colors">
+                <span>📊</span> 閱讀指南與數據總覽
+            </button>
+            <div class="relative">
+                <svg class="w-4 h-4 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" id="search-input" placeholder="搜尋題意或關鍵字..." class="w-full pl-9 pr-3 py-2 text-sm bg-slate-100 border-transparent rounded-md focus:bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all outline-none">
+            </div>
+        </div>
+
+        <!-- Toc List -->
+        <div class="flex-1 overflow-y-auto p-2" id="toc-container">
+            <!-- Populated by JS -->
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main id="main-content" class="flex-1 flex flex-col h-full bg-paper w-full transition-all duration-300 lg:ml-[20rem]">
+        
+        <!-- Top Navigation Bar -->
+        <header class="h-16 flex items-center justify-between px-4 lg:px-8 border-b border-slate-200/60 bg-white/80 backdrop-blur-sm shrink-0 sticky top-0 z-20">
+            <div class="flex items-center gap-3">
+                <button onclick="app.toggleSidebar()" class="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md transition-colors" title="切換目錄">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                </button>
+                <span class="text-sm font-medium text-slate-500 hidden sm:inline-block">iPAS 考科一：人工智慧基礎概論</span>
+            </div>
+            
+            <div class="flex items-center gap-1" id="top-nav-controls">
+                <!-- Populated by JS -->
+            </div>
+        </header>
+
+        <!-- Reading Canvas -->
+        <article id="reading-canvas" class="flex-1 overflow-y-auto px-4 py-8 lg:p-12 xl:px-24">
+            
+            <!-- OVERVIEW VIEW -->
+            <div id="view-overview" class="max-w-4xl mx-auto fade-enter">
+                <div class="text-center mb-12">
+                    <h1 class="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-4 tracking-wide">實務提案解析指南</h1>
+                    <p class="text-lg text-slate-600">跳脫死記硬背，以企業架構師視角解構 50 道核心考題</p>
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-sm mb-12">
+                    <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <span class="text-brand-500">📖</span> 閱讀方法與模塊說明
+                    </h2>
+                    <div class="prose max-w-none text-slate-600 space-y-4">
+                        <p>本書將每道選擇題拆解為兩大部分：</p>
+                        <ul class="list-disc pl-5 space-y-2">
+                            <li><strong>學術解析：</strong> 說明正確選項的理論依據，並點出錯誤選項的盲點。</li>
+                            <li><strong>實務提案：</strong> 將考題情境投射至真實企業，提供包含 <code>痛點</code>、<code>解方</code>、<code>PoC驗證</code>、<code>風險</code> 與 <code>人機協作</code> 五大模塊的具體商業提案範本。</li>
+                        </ul>
+                        <div class="mt-6 p-4 bg-amber-50 text-amber-800 rounded-lg text-sm flex items-start gap-3">
+                            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <p><strong>操作提示：</strong> 可使用左側目錄快速跳轉，或使用畫面上方/下方的按鈕循序閱讀。電腦版支援鍵盤左(←)右(→)方向鍵翻頁。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <span class="text-brand-500">📊</span> 考科一知識點分佈
+                    </h2>
+                    <div class="flex flex-col md:flex-row items-center gap-8">
+                        <div class="w-full md:w-1/2">
+                            <div class="chart-container"><canvas id="overviewChart"></canvas></div>
+                        </div>
+                        <div class="w-full md:w-1/2" id="chart-legend"></div>
+                    </div>
+                </div>
+                
+                <div class="mt-12 text-center">
+                    <button onclick="app.goToQuestion(1)" class="inline-flex items-center gap-2 px-8 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg">
+                        開始閱讀第一題 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- QUESTION VIEW (E-Book Style) -->
+            <div id="view-question" class="max-w-3xl mx-auto hidden pb-20">
+                <!-- Populated by JS -->
+            </div>
+
+        </article>
+
+        <!-- Bottom Navigation Bar (Floating) -->
+        <footer id="bottom-nav" class="hidden h-16 border-t border-slate-200/60 bg-white/90 backdrop-blur-sm shrink-0 flex items-center justify-between px-4 lg:px-8 z-20">
+            <button onclick="app.navigate(-1)" id="btn-prev" class="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                <span class="font-medium">上一題</span>
+            </button>
+            
+            <div class="text-sm font-medium text-slate-400 font-mono tracking-widest" id="page-indicator">
+                -- / --
+            </div>
+
+            <button onclick="app.navigate(1)" id="btn-next" class="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <span class="font-medium">下一題</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+        </footer>
+
+    </main>
+
+    <!-- APPLICATION LOGIC -->
+    <script>
+        // Database expansion with deep explanations and rich proposal content
+        const db = [
+            { id: 1, cat: 1, title: '資料整合與治理', q: '下列何者不屬於資料整合（Data Integration）的主要目的？', opts: ['(A) 統一不同來源資料的格式與欄位定義；', '(B) 識別並處理重複資料；', '(C) 整併多來源資料以提升價值；', '(D) 依資料保存政策延長原始資料留存期限'], ans: 'D', 
+              exp: '資料整合的核心技術任務在於將來自不同系統（如 ERP、CRM）的異質資料進行清洗、格式統一與整併（即選項 A, B, C），以消除資料孤島。選項 D 提到的「延長資料留存期限」屬於「資料保留政策（Data Retention Policy）」與行政管理範疇的「資料治理」，並非資料整合工程本身的目的。', 
+              pain: '企業內部常存在多個異質資訊系統，導致客戶資料破碎、格式不一且充滿重複值。若不進行整合，AI 團隊將耗費 80% 的時間在尋找與清理資料，無法直接進行高價值的模型訓練。', 
+              sol: '導入自動化資料整合平台進行 ETL (Extract, Transform, Load) 或 ELT 流程。建議評估 Airbyte（開源、自建彈性高、支援自定義 Connector）或 Fivetran（商用、全自動化維護、SLA 保障高）。', 
+              poc: '規劃兩週的 PoC：使用 Airbyte 串接現有的 Salesforce CRM 與舊版 MySQL 銷售資料庫，實測能否將原始資料自動清洗、去重，並定時化整併至單一的 Snowflake 資料倉儲中。', 
+              risk: '跨系統大量資料搬移時，可能面臨網路傳輸過程中的封包攔截與外洩風險。此外，需請法務確認資料整併後的「混合分析」是否違反最初收集個資時的「特定目的外使用」法規。', 
+              human: '資料工程師需人工審核系統生成的欄位對應邏輯（Schema Mapping），並定期檢視資料品質儀表板，確認整合後的數據不存在空值率異常等髒資料。' },
+            
+            { id: 2, cat: 5, title: '物聯網與感知器網路', q: '智慧城市需持續蒐集環境數據（如 PM2.5）與設備狀態（如垃圾桶滿溢度）。下列何種技術最直接支援上述需求？', opts: ['(A) 專家系統；', '(B) 決策支援系統；', '(C) 啟發式決策引擎；', '(D) 感知器網路'], ans: 'D', 
+              exp: '題目中描述的是「持續蒐集物理環境的真實數據與狀態」。專家系統與決策引擎屬於上層的邏輯運算大腦；而負責在第一線實體環境中進行「即時感測與數據傳輸」的基礎建設，正是由大量感測節點組成的「感知器網路 (Sensor Network)」。', 
+              pain: '智慧城市或大型廠區需要即時掌握實體環境狀況（如空汙、淹水水位），但目前極度缺乏自動化、大範圍且能全天候運作的物理數據蒐集管道，導致決策總是慢半拍。', 
+              sol: '建置 IoT 感知器網路並連結雲端物聯網平台。工具評估：AWS IoT Core（雲端生態系完整，可無縫串接機器學習服務）對比 ThingsBoard（開源、物聯網專屬的強大視覺化儀表板）。', 
+              poc: '於特定示範街區安裝 10 個具備 NB-IoT 通訊功能的滿溢度感測器，串接 AWS IoT Core，實測數據即時回傳的延遲率、掉包率以及電池續航力表現。', 
+              risk: '部署於戶外的邊緣感測器節點極易受到實體破壞，或遭駭客實體入侵植入惡意程式，因此需嚴格評估 IoT 設備的安全憑證管理機制與通訊加密強度。', 
+              human: '環境管理中心的操作員負責監控異常斷線警報；當系統建議之清運路線發生實體道路封閉等突發狀況時，操作員需立即進行人工調度介入。' },
+            
+            { id: 3, cat: 2, title: '非監督式學習特徵', q: '下列何者不符合非監督式學習（Unsupervised Learning）的典型特徵？', opts: ['(A) 依特徵相似性自動分群；', '(B) 訓練不需定義標籤；', '(C) 探索潛在結構；', '(D) 學習輸入與既定目標標記對應關係'], ans: 'D', 
+              exp: '非監督式學習最大的特徵就是資料「沒有正確答案（標籤）」，讓模型自行探索資料內的隱含結構或相似性（如選項 A, B, C）。選項 D 描述的「學習輸入特徵與既定目標標記 (Label) 之間的對應關係」，完全是「監督式學習 (Supervised Learning)」的定義。', 
+              pain: '行銷部門希望對資料庫中超過百萬名的會員進行精準的分眾行銷，但目前除了基本交易紀錄外，缺乏對會員屬性的明確標籤定義，不知該如何將會員分類。', 
+              sol: '採用非監督式學習演算法（如 K-Means 或 DBSCAN）進行自動分群。工具比較：Scikit-learn（輕量、適合中小型資料集的快速驗證）對比 H2O.ai（適合大規模企業級的分散式機器學習平台）。', 
+              poc: '從資料庫中載入一萬筆無標籤的會員歷史消費特徵紀錄，執行 K-Means 分群，實測模型能否自動將會員聚類為 5 大潛在且具備差異性的客群樣貌。', 
+              risk: '演算法在自動探索特徵相似性時，可能無意中過度放大了性別、年齡或種族等受保護特徵，產生帶有歧視性的群體分類，引發品牌公關危機與公平性爭議。', 
+              human: '非監督學習找出的只是純粹的數學群體。行銷企劃人員必須親自審視這些群體的特徵分佈，為 AI 分群結果「賦予真實的商業意義（命名）」，並決定對應的行銷策略。' },
+
+            { id: 4, cat: 1, title: '離群值與特徵工程', q: '保險理賠金額呈近似常態分佈，但存在少數極端高額案件。在不破壞整體分佈前提下處理離群值，何者最不適當？', opts: ['(A) 依 Z-score 或 IQR 評估處理；', '(B) 採用截尾 (Trimming) 處理；', '(C) 使用 One-hot 編碼將離群值轉為類別特徵；', '(D) 結合領域知識評估合理性'], ans: 'C', 
+              exp: '「理賠金額」是一個連續型的數值特徵。One-hot 編碼是專門用來處理「離散型類別特徵」（如性別、地區）的方法。若強行將連續數值中的離群值轉為 One-hot 類別，不僅會造成特徵維度暴增，更會徹底破壞理賠金額原本的連續數理邏輯與大小關係。', 
+              pain: '公司的保險理賠預測模型，常常受到少數幾筆極端的「天價理賠案件」影響，導致模型權重被嚴重拉扯，反而對佔比 99% 的一般理賠案件預測極度不準確。', 
+              sol: '在資料前處理管線中導入自動化特徵工程工具，針對極端值進行縮放或截尾。評估方案：Pandas/Scipy (需工程師手動撰寫統計處理邏輯) vs DataRobot (提供 AutoML 自動偵測並推薦最佳離群值處理法)。', 
+              poc: '使用 Pandas 實作 IQR (四分位距) 方法，自動找出並將超過上界 (Q3 + 1.5*IQR) 的極端金額進行截尾，對比處理前後模型在一般案件上的均方誤差 (MSE) 改善幅度。', 
+              risk: '盲目或不當的刪除極端值，可能會掩蓋了真實存在的重大系統性風險或有組織的詐欺案件，導致高層對財務風險的評估過度樂觀。', 
+              human: '資深的理賠核保人員必須與資料科學家共同作業，逐筆檢視被系統標記為離群值的案件，確認其究竟是人為輸入錯誤 (髒數據)，還是真實發生的極端特殊案件。' },
+
+            { id: 5, cat: 2, title: '資料不平衡與 SMOTE', q: '詐欺樣本比例極低，評估採用 SMOTE 改善。下列何者最符合 SMOTE 技術的主要功能？', opts: ['(A) 隨機刪除部分正常交易資料；', '(B) 依據少數類別樣本的特徵空間，合成產生新樣本；', '(C) 調整損失函數權重提高懲罰；', '(D) 交叉驗證重新分割資料集'], ans: 'B', 
+              exp: '在處理嚴重失衡的資料集時，SMOTE (Synthetic Minority Over-sampling Technique) 是一種強大的超取樣技術。它並非單純複製舊有的少數資料，而是在少數類別樣本的特徵空間中，尋找近鄰樣本並進行線性插值，藉此「合成」出全新的、具備相似特徵的少數類別樣本。', 
+              pain: '信用卡詐欺交易僅佔總交易量的千分之一。若不處理資料失衡，AI 模型只要偷懶一律預測「正常交易」，就能獲得 99.9% 的超高準確率，但卻連一個真實的詐欺犯都抓不到。', 
+              sol: '在模型訓練管線中導入 SMOTE 演算法進行少數類別的過取樣 (Oversampling)。工具比較：Imbalanced-learn (Python 開源套件，專注於不平衡資料) vs 雲端 AutoML 內建的類別平衡機制。', 
+              poc: '從歷史資料中提取 100 筆真實的詐欺數據，使用 SMOTE 將其合成擴充至 5000 筆，平衡正負樣本比例後重新訓練模型，並在未見過的測試集上驗證召回率 (Recall) 是否顯著提升。', 
+              risk: 'SMOTE 合成出的資料是基於數學插值。若合成出來的詐欺特徵偏離了真實世界金融犯罪的複雜手法，可能會導致模型在實際上線時產生大量的誤判 (False Positives)，引發嚴重客訴。', 
+              human: '防制洗錢 (AML) 或風控專家必須對 AI 模型抓出的「高風險名單」進行最終的邏輯檢驗，確認該交易模式是否真有詐欺嫌疑，而非讓 AI 直接無腦阻擋客戶刷卡。' },
+
+            { id: 6, cat: 1, title: '防範資料洩漏', q: '對數值特徵進行標準化。為確保評估真實性並避免資料洩漏，最適當的作法為？', opts: ['(A) 分割前對完整資料計算並標準化；', '(B) 分割後各自獨立計算並標準化；', '(C) 分割後僅以訓練資料計算統計量，再套用至測試資料；', '(D) 僅對訓練資料標準化'], ans: 'C', 
+              exp: '在機器學習中，測試資料 (Test Data) 必須被嚴格視為未來未知的資料。若在分割前就對全體資料進行標準化，測試集的資訊（如全域平均數、標準差）就會「洩漏」給模型。正確作法是：先分割資料，統計量僅從訓練集中計算，然後將相同的計算規則強制套用到測試集上。', 
+              pain: '公司內部的 AI 模型在研發環境進行回測時，準確率高達 95% 表現完美；但只要一正式上線部署到真實環境，預測能力就如同懸崖般崩跌，導致業務單位對 AI 團隊失去信任。', 
+              sol: '強制作業規範，導入標準化機器學習管線 (Pipeline) 架構以物理性防止資料洩漏。比較：Scikit-learn Pipeline (將資料轉換與模型封裝在同一物件中) vs MLflow (系統級的模型生命週期管理與追蹤)。', 
+              poc: '重新改寫訓練腳本，使用 Scikit-learn Pipeline 將「特徵標準化處理」與「模型訓練步驟」嚴格封裝，並再次使用全新的未知資料集測試，檢驗出模型真實的預測能力基準線。', 
+              risk: '發生資料洩漏會製造出虛假的「超高效能」幻覺。若管理層依據這種過度樂觀的假性指標投入大量行銷或營運資源，將導致嚴重的商業投資損失。', 
+              human: 'AI 系統架構師或資深工程師必須嚴格進行 Code Review，確保資料集切割 (Train-Test Split) 的程式碼邏輯，絕對發生在任何全域特徵轉換工程之前。' },
+
+            { id: 7, cat: 1, title: '類別型特徵編碼', q: '資料包含「資費方案」與「客戶地區」等類別特徵。何者最直接用於將其轉換為模型可處理的數值格式？', opts: ['(A) 資料分群；', '(B) 特徵交叉；', '(C) One-hot 編碼；', '(D) 寬深模型'], ans: 'C', 
+              exp: '大多數機器學習模型（如邏輯迴歸、神經網路）底層都是進行數學運算，無法直接吞讀「台北市」、「吃到飽方案」等離散文字。One-hot 編碼 (獨熱編碼) 透過將每個獨立類別轉換為專屬的二進位欄位（只有該類別為 1，其餘為 0），是最基礎且標準的數值化轉換技術。', 
+              pain: '客戶特徵數據中包含大量文字型態的「居住地區」、「職業別」或「申辦方案名稱」，現有演算法無法直接處理這些重要維度，導致預測模型流失了極具價值的客群屬性資訊。', 
+              sol: '使用特徵編碼技術將離散類別數值化。方案比較：One-hot Encoding (Pandas 或 Sklearn，直觀易懂) 對比 CatBoost 演算法 (內建極其強大的類別特徵自動處理能力，無需手動編碼即可訓練)。', 
+              poc: '直接使用 CatBoost 演算法載入包含文字地區特徵的客戶流失數據集進行訓練，對比傳統手動進行 One-hot 轉換後再送入 RandomForest 的訓練速度與準確率差異。', 
+              risk: '當類別特徵基數極高（例如包含全台數千個郵遞區號或上萬種商品 SKU）時，強制使用 One-hot 編碼會引發嚴重的維度災難，導致矩陣過度稀疏並引發伺服器記憶體溢出 (OOM) 崩潰。', 
+              human: '前線業務或領域專家需協助工程師，將冷門的長尾類別進行人工整併（例如將邊陲小鄉鎮統一歸類為「其他地區」），以大幅降低特徵維度與後續維護難度。' },
+
+            { id: 8, cat: 2, title: 'Wide and Deep 架構', q: '模型既能學習過去已出現的特徵組合規律，也能對未出現的組合做出合理預測。哪種架構最適合？', opts: ['(A) 線性迴歸；', '(B) 決策樹；', '(C) 支援向量機；', '(D) 寬深模型（Wide and Deep）'], ans: 'D', 
+              exp: '這是 Google 針對推薦系統提出的經典架構。寬模型 (Wide) 透過特徵交叉擅長「記憶」過去頻繁出現的歷史組合（例如：買過尿布的人常買啤酒）；深模型 (Deep) 則透過神經網路的隱藏層擅長「泛化」，能對未見過的新商品或新特徵組合進行探索與合理推論。結合兩者即能完美滿足題意。', 
+              pain: '電商平台的推薦系統若只依賴傳統記憶型算法，無法推薦新上架商品給新客；若單純依賴深度學習進行泛化推薦，又會喪失對老客戶精準推薦爆款商品的穩定性，導致轉換率卡關。', 
+              sol: '導入 Wide and Deep 神經網路架構全面升級推薦引擎。工具評估：TensorFlow Recommenders (Google 原生支援，提供現成元件) 對比使用 PyTorch 從底層自建雙網路架構。', 
+              poc: '使用 TensorFlow 建立實驗模型，將使用者歷史購買行為與高頻點擊組合餵入 Wide 側，並將使用者畫像與商品抽象特徵餵入 Deep 側，實測其預測點擊率 (CTR) 的提升效果。', 
+              risk: '深度學習推薦系統極易讓使用者陷入「資訊濾泡 (Filter Bubble)」。此外，若系統錯誤泛化，將受法規管制之商品（如菸酒、成人用品）推薦給未成年特徵之受眾，企業將面臨嚴峻裁罰。', 
+              human: '行銷與法遵主管必須在系統後端設定強制性的「業務規則濾網（Business Rules Engine）」（例如：絕對禁止推薦缺貨品或限制級商品），作為 AI 模型輸出前的最後一道防線。' },
+
+            { id: 9, cat: 3, title: '多分類與 Softmax', q: '預測感興趣影片類型，需將結果轉換為各類別的機率分佈。哪種函數最適合輸出層？', opts: ['(A) Softmax函數；', '(B) Sigmoid函數；', '(C) 線性函數；', '(D) ReLU函數'], ans: 'A', 
+              exp: '預測使用者喜歡哪一種類型（如動作、喜劇、科幻）屬於「多分類問題」。在深度神經網路的最後輸出層，Softmax 函數能將模型產生的多個非標準化分數 (Logits) 壓縮至 0 到 1 之間，且確保所有類別的機率總和剛好等於 1，完美提供相對的機率分佈。', 
+              pain: '影音平台的首頁排版需要明確知道使用者對「動作片、愛情片、恐怖片」的相對偏好機率高低，才能動態決定各類型頻道的優先展示順序，而非單純只給一個最可能分類。', 
+              sol: '在深度學習分類器的尾端加入 Softmax 激勵層。技術框架評估：Keras (高階 API 易於快速搭建與實驗) 對比 ONNX Runtime (著重於模型部署後的極致推論速度與跨平台兼容性)。', 
+              poc: '構建一個簡單的使用者行為特徵分類模型，將輸出的 Logits 透過 Softmax 轉化，實測系統是否能穩定針對每一位用戶，輸出總和為 100% 的多維度偏好機率分佈圖。', 
+              risk: '機率分佈只是演算法的數學預測。若前端介面過度僵化地「完全依照最高機率」來塞滿畫面，不給予任何多樣性打亂，將導致用戶長期陷入審美疲勞，流失探索新內容的樂趣與留存率。', 
+              human: 'UX/UI 介面設計師需依據 AI 算出的機率分佈，設計出兼顧熟悉與驚喜的動態版面策略（例如設定硬性規則：主推愛好類型佔 70% 版面，保留 30% 給隨機探索內容）。' },
+
+            { id: 10, cat: 4, title: '生成式圖像技術 (VAE)', q: '依據既有圖像產生具有變化且風格一致的新圖像，模型必須學習資料特性並生成新樣本。哪種技術最符合？', opts: ['(A) 隱變量自編碼器（VAE）；', '(B) 隨機森林；', '(C) K-近鄰演算法；', '(D) 貝氏網路'], ans: 'A', 
+              exp: '變分自編碼器 (Variational Autoencoder, VAE) 是一種經典的生成式深度學習模型。它透過編碼器將真實圖像資料壓縮映射到一個連續的「隱空間 (Latent Space)」並學習分佈；解碼器能從該空間採樣，生成出具備原資料風格但又具備全新變化的圖像。傳統 ML 無此能力。', 
+              pain: '工業設計團隊在專案發想初期，需要大量風格一致但外觀略有變化的產品概念草圖來激發靈感。傳統依賴設計師純手工繪製，耗時極長且難以在短時間內窮舉大量可能性。', 
+              sol: '導入基於 VAE 或擴散模型的生成式 AI 工具。評估方案：使用 Hugging Face Diffusers (開源框架，允許企業微調自有風格) 對比呼叫 Midjourney API (商用服務，畫質極致但無法保護內部機密)。', 
+              poc: '在企業內網部署輕量級的圖像生成模型，輸入公司既有且具備獨特風格的產品照片作為引導，實測系統能否在 5 分鐘內生成 10 張具備延續性風格的全新概念草圖。', 
+              risk: '若生成的草圖無意中過度模仿了訓練資料庫中受版權保護的競品設計特徵，且被直接採用於最終產品開發，企業將面臨嚴峻的智慧財產權侵權訴訟與鉅額賠償。', 
+              human: '資深工業設計師必須將 AI 生成的草圖嚴格視為「初步靈感素材」，需進行人工篩選、過濾，並進行大幅度的二次手工重新繪製與建模，以確保品牌產品的絕對原創性。' },
+
+            { id: 11, cat: 4, title: '生成式 AI 品質評估', q: '規劃額外建置一套 AI 系統，用於評估會議摘要內容的正確性與完整性。此 AI 系統的核心目標為？', opts: ['(A) 自動新增專業名詞；', '(B) 判斷摘要是否遺漏關鍵資訊或出現語意錯誤；', '(C) 調整語音轉文字；', '(D) 自動標註主題'], ans: 'B', 
+              exp: '建置這套額外評估系統（通常被稱為 LLM-as-a-Judge）的目的，是要對第一線生成式 AI 產出的內容進行「品質把關」。因此，其核心任務就是代替人工去檢驗摘要是否漏掉了重要對話（完整性），或是產生了無中生有的幻覺與錯誤（正確性）。', 
+              pain: '企業導入 AI 自動產出會議摘要後，雖然效率大增，但偶爾會發生嚴重的「AI 幻覺」——無中生有編造決議，或是漏掉了長官的關鍵裁示，導致跨部門溝通產生嚴重誤會。', 
+              sol: '導入進階的 LLM 自動評估框架。工具評估：Ragas (開源框架，專注於 RAG 檢索增強生成的各種指標評估) 對比 TruLens (提供強大的視覺化評估儀表板，易於追蹤品質變化)。', 
+              poc: '利用 TruLens 平台，將原始的冗長會議逐字稿與 AI 生成的摘要進行比對評分。針對「事實一致性 (Groundedness)」與「關鍵字覆蓋率」兩項指標設定嚴格權重，實測系統打分的準確度。', 
+              risk: '「使用魔法打敗魔法」存在固有盲點：作為評估者的評判模型本身也可能產生認知偏差或幻覺，導致真正有問題的摘要被高分放行，進而引發後續的商業決策失誤。', 
+              human: '專案經理 (PM) 接收到摘要後不能盲目發送。仍需依賴系統的警示，快速掃視被評估模型標記為「低分/紅燈」的爭議段落，並親自對照錄音檔進行最終的人工校正。' },
+
+            { id: 12, cat: 4, title: '現代對話型 AI 基礎', q: 'ChatGPT、Gemini 等對話型生成式 AI 工具所依據的基礎模型技術為何？', opts: ['(A) 決策樹；', '(B) 大型語言模型（LLM）；', '(C) 生成對抗網路（GAN）；', '(D) 圖卷積網路（GCN）'], ans: 'B', 
+              exp: '當今震撼世界的對話機器人如 ChatGPT (OpenAI) 或 Gemini (Google)，其底層驅動的核心技術皆為「大型語言模型 (Large Language Model, LLM)」。這類模型主要基於 Transformer 網路架構，透過消化海量文本資料進行預訓練，掌握了極其強大的語言理解與生成能力。', 
+              pain: '傳統的客服機器人大多基於死板的關鍵字決策樹，只能給出制式化的罐頭回覆；當客戶提問上下文稍微複雜或語意模糊時，系統就會頻繁跳針，引發客戶強烈不滿。', 
+              sol: '廢棄舊有系統，全面改採基於 LLM 技術的企業級 API 串接。方案評估：OpenAI GPT-4 API (推理邏輯能力目前業界頂尖) 對比 Google Gemini Pro API (與 Google 生態系整合極佳，支援超長文本脈絡)。', 
+              poc: '撰寫具備企業人設的系統提示詞 (System Prompt)，並注入 5 篇公司核心產品的 FAQ 文件，實際丟入複雜且帶有情緒的客訴情境，測試 LLM 其應答的安撫技巧、流暢度與專業正確性。', 
+              risk: '若毫無防備地直接依賴外部公有雲 API，極可能導致企業內部的商業機密資料，或客戶提問中夾帶的敏感個資，未經加密直接傳送至海外伺服器，嚴重違反在地資安與隱私合規要求。', 
+              human: '資安與法遵人員必須事前嚴格審核所有送往 LLM 的 Prompt 模板，確保在程式中層強制套用了「個資去識別化/遮罩 (Data Masking)」過濾器，攔截任何潛在的敏感資訊外流。' },
+
+            { id: 13, cat: 5, title: 'AI 透明度規範', q: '依《金融機構運用人工智慧技術作業規範》，直接與消費者互動時，何者非必要揭露之資訊？', opts: ['(A) AI 模型原始程式碼；', '(B) 適用對象與用途；', '(C) 是否為 AI 自動完成；', '(D) 是否提供替代方案'], ans: 'A', 
+              exp: '根據金融機構的 AI 作業規範，為保障消費者知的權利，必須保持互動服務的透明度（揭露用途、是否自動、替代方案）。然而，AI 模型的「原始程式碼」與「核心權重參數」屬於企業極具價值的商業機密與智慧財產權，法規上絕對不要求向一般消費者揭露。', 
+              pain: '金融業在積極導入 AI 客服或智能理財顧問時，面臨金管會極度嚴格的消費者權益保護與透明度規範。法務團隊不知該如何拿捏向客戶揭露資訊的尺度，深怕過少會挨罰，過多又洩漏機密。', 
+              sol: '在系統前端建立一套符合法規標準的「AI 互動透明度揭露介面」。方案比較：由內部法務指導 UI 團隊「自建合規提示對話框」(成本低但需自行維護法規更新) 對比「導入第三方 AI 治理平台」(自動跟隨法規產出合規聲明)。', 
+              poc: '在企業官方 App 的智能理財對話框上方，實作顯眼且具備免責聲明的標語，並加入「本服務由 AI 輔助提供，若需真人專業顧問請按此」的一鍵切換替代方案按鈕。', 
+              risk: '若企業為了營造「專業權威感」而刻意隱瞞服務背後是由 AI 自動完成，導致消費者誤信其為真人專家而產生投資損失，金融機構將面臨嚴厲的行政裁罰與巨額集體求償。', 
+              human: '法務、合規與公關部門必須緊密跨部門合作，共同逐字確認前端 UI 的「AI 服務透明度揭露條款」，確保向消費者傳達的用字遣詞既白話易懂，又能做到滴水不漏的合法免責。' },
+
+            { id: 14, cat: 5, title: 'AI 產業應用對應', q: '下列哪一項「AI 技術應用與產業領域」的對應最為恰當？', opts: ['(A) 預測股票市場波動—智慧交通；', '(B) 設備故障預測與預防性維護—智慧製造；', '(C) 推薦升級優惠—智慧醫療；', '(D) 提升臨床診斷—金融服務業'], ans: 'B', 
+              exp: '這是一題基本的產業常識題。利用 AI 結合感測器數據來進行設備的「故障預測與預防性維護（Predictive Maintenance）」，是工業 4.0 與「智慧製造」領域中最為經典、成熟且具備龐大商業價值的落地應用場景。', 
+              pain: '製造業的自動化產線常因核心設備的突發性故障，導致整條產線非預期停機。傳統的「定期保養」策略不僅浪費健康零件的壽命，也完全無法防範突發狀況，造成產能巨大損失。', 
+              sol: '導入 AI 驅動的預防性維護系統。解決方案比較：採用端到端硬軟體整合的 AWS Monitron 方案（部署極快）對比基於 Azure IoT Hub 搭配自建 Machine Learning 模型（適合極端客製化廠房設備）。', 
+              poc: '將高頻震動感測器安裝於產線最核心的 3 台關鍵馬達上，收集長達一個月的運作數據。實測 AI 預警模型是否能在馬達實體損壞前發出警告，追蹤「非預期停機時間」的減少比例。', 
+              risk: '若 AI 模型閾值設定過度敏感，頻繁發出「狼來了」的假警報，將會白白浪費大量維修工程師的人力與排程成本，最終導致廠房基層人員對系統徹底失去信任甚至反彈抗拒。', 
+              human: '廠務維修技師接收到系統的 AI 異常預警後，不能盲目停機；必須攜帶儀器進行實地的聽音與目視複查，經過人類專家的雙重確認後，才能正式簽核並排程停機維修。' },
+
+            { id: 15, cat: 1, title: '結構化數據定義', q: '下列何者屬於「結構化數據」的例子？', opts: ['(A) 儲存在 MySQL 資料庫中的訂單記錄；', '(B) 以 JSON 格式儲存；', '(C) 用 XML 標註；', '(D) 純文字客服對話'], ans: 'A', 
+              exp: '「結構化數據」是指具有嚴格、固定且預先定義好的格式，通常以高度組織化的二維表格（欄與列）形式儲存，並且可以直接使用 SQL 語法進行精確查詢的資料。因此，儲存在關聯式資料庫如 MySQL 中的訂單記錄是標準答案。', 
+              pain: '企業歷年來累積了極具價值的海量銷售與訂單紀錄，業務單位急需使用傳統統計或機器學習模型進行精準的營收預測與客群分析，但目前資料四散且格式不一，缺乏易於大規模查詢的結構。', 
+              sol: '將核心交易資料收斂並集中至關聯式資料庫管理系統 (RDBMS)。技術堆疊比較：MySQL（開源社群龐大、適合標準應用）對比 PostgreSQL（支援進階數據型態與複雜的空間/統計查詢）。', 
+              poc: '撰寫腳本將業務部門分散在各處的 Excel 訂單檔案，經過初步清洗後匯入 MySQL 中建立結構化 Table，並實測使用 SQL 語法能否在毫秒級內精準撈取出「近三個月消費前 100 名的高價值客戶」。', 
+              risk: '高價值結構化資料庫是駭客眼中最肥美的目標。若未設定嚴密的存取權限控管 (IAM)，或應用程式端缺乏隱碼攻擊 (SQL Injection) 防護機制，極易遭駭客竊取全體客戶機密個資。', 
+              human: '資料庫管理員 (DBA) 必須肩負守門員職責，嚴謹設計 Table Schema 的限制條件（如強制商品金額欄位絕對不可為負數），從最底層防範前線業務員不慎輸入髒數據。' },
+
+            { id: 16, cat: 1, title: '敘述性統計與極端值', q: '關於敘述性統計指標，下列敘述何者最為正確？', opts: ['(A) 中位數能反映極端值影響；', '(B) 標準差越大代表越集中；', '(C) 百分位數用於衡量整體分布的相對位置；', '(D) 平均值適合偏態資料'], ans: 'C', 
+              exp: '敘述性統計用於總結資料特徵。百分位數 (如 PR99) 主要用來表示某數值在整體排序數據中的相對落點位置（C正確）。中位數特性是「抵抗」極端值；標準差越大代表資料越分散；平均值極易被極端值拉扯，最不適合偏態資料。', 
+              pain: '業務部門主管需要客觀了解每位員工績效的「真實相對落點」。但目前報表只看整體平均值，這個數值經常被極少數業績破表的「超級業務」拉高而嚴重失真，導致一般員工覺得目標遙不可及。', 
+              sol: '導入企業級 BI (Business Intelligence) 工具，建立具備多維度視角的敘述性統計儀表板。工具比較：Tableau（視覺化互動性強，適合高階探索）對比 Power BI（與微軟生態系無縫整合，導入成本低）。', 
+              poc: '將全台業務員的薪資與業績資料匯入 Power BI，計算平均值的同時，更以箱型圖清楚呈現 P25、P50(中位數)、P75 的百分位數分佈，讓主管一眼抓出處於尾部 25% 的落後群體。', 
+              risk: '統計數據易被誤讀。若高階決策者未察覺資料存在嚴重的右偏態，而盲目且剛硬地採用「平均值」作為明年度的 KPI 達標基準，將導致極度不公平且打擊士氣的績效考核。', 
+              human: '專業的資料分析師有責任在報表旁加註醒目的「數據解讀指引」（例如：本季資料受極端大單影響呈現嚴重右偏，請主管務必以中位數作為獎金發放參考），積極協助主管做出正確決策。' },
+
+            { id: 17, cat: 1, title: '直方圖應用情境', q: '下列哪一種情境最適合使用直方圖（Histogram）？', opts: ['(A) 檢視顧客年齡資料在不同區間的集中情形；', '(B) 分析售價與銷量關聯；', '(C) 比較年度總額；', '(D) 標示地理分布'], ans: 'A', 
+              exp: '直方圖 (Histogram) 在資料視覺化中具備非常明確的功能：它專門用於檢視「單一連續數值變數（如年齡、薪水）」在預先劃分的各個分組區間（Bins）內的出現次數或頻率分佈情形，藉此觀察資料的集中趨勢。', 
+              pain: '行銷團隊即將投入高額預算推出主打年輕人的全新訂閱方案，但他們對目前百萬會員的年齡層分布狀況一無所知，無法確認這波行銷活動最主要該鎖定在哪個特定年齡區間才能獲得最大效益。', 
+              sol: '運用資料科學視覺化套件，快速將冰冷的數字轉化為分佈圖表。技術評估：使用 Python 的 Seaborn 函式庫（適合工程師快速探索）對比 Tableau（適合業務人員以拖拉方式產生動態報表）。', 
+              poc: '讀取 CRM 客戶資料庫，以 5 歲為一個分組區間 (Bin size = 5)，使用 Seaborn 繪製全體活躍客戶年齡的直方圖。圖表產出後，立刻讓行銷團隊清楚看見哪個年齡區間柱狀最高。', 
+              risk: '技術面上，若直方圖的區間大小 (Bin size) 設定不當，可能會隱藏真實資料中的雙峰分佈特徵導致決策誤判；法規面上，撈取並分析具備特徵識別性的個資時，必須確保符合個資法規範。', 
+              human: '資料科學家不僅是產出圖表，更需拿著分析結果，親自與行銷總監開會討論，共同依據圖表所呈現的峰值分佈，拍板決定這波行銷廣告最終要精準鎖定的受眾年齡範圍。' },
+
+            { id: 18, cat: 2, title: '二分搜尋法', q: '陣列：[3, 8, 14, 19, 21, 27, 33, 45, 52]，目標值 27，標準二分搜尋最多比較幾次？', opts: ['(A) 2次；', '(B) 3次；', '(C) 4次；', '(D) 5次'], ans: 'B', 
+              exp: '全陣列 9 個元素，找 27。第一次比較中央值(索引4)是 21，27>21 鎖定右半部；第二次比較右半部中央值(索引6)是 33，27<33 鎖定左半部；第三次比較(索引5)正好是 27。總共比較 3 次即可找到目標。', 
+              pain: '電商平台在「雙11」大促銷等流量洪峰期間，伺服器必須在夾帶數百萬筆已排序商品價格的巨大檔案中進行極速條件檢索。若底層採用線性搜尋，將導致伺服器運算資源瞬間超載並引發嚴重卡頓。', 
+              sol: '要求後端系統在涉及排序檢索的底層演算法，全面實作時間複雜度 O(log N) 的二分搜尋法。比較：利用 Python 內建 `bisect` 模組（開發快速）對比使用底層 C++ 的 `std::binary_search`（追求效能極致）。', 
+              poc: '編寫效能測試腳本，生成 100 萬筆價格數值的模擬陣列並排序，實測使用 `bisect` 尋找目標值，確認其平均搜尋耗時是否能從毫秒級戲劇性地降低至微秒級。', 
+              risk: '二分搜尋法極快，但具備一個致命弱點：強烈依賴資料「必須事先處於絕對排序狀態」。若資料庫更新時未妥善保持排序，將導致搜尋結果回傳錯誤值，甚至陷入無限迴圈。', 
+              human: '後端工程師必須設計完善的批次排程任務，確保每日不斷新增商品與變動價格的資料庫，能在凌晨流量最低的離線時段完成全庫排序重整，保障白天線上檢索的絕對正確性。' },
+
+            { id: 19, cat: 2, title: '強化式學習機制', q: '依配送狀態動態調整行動選擇使績效收斂，此行為最符合哪一項 RL 核心機制？', opts: ['(A) 調整策略函數以改變行動選擇機率；', '(B) 更新訓練資料分布；', '(C) 重新分群；', '(D) 建立決策標籤'], ans: 'A', 
+              exp: '強化學習 (RL) 不依賴標籤，而是透過環境回饋的累積獎勵 (Reward)，不斷動態優化內部的「策略函數 (Policy Function)」，改變未來在相似狀態下選擇各種行動的機率分佈，引導決策往最佳化收斂。', 
+              pain: '大型物流公司的派車系統長期採用固定路線規則。一遇到市區嚴重塞車、封路或急件插入時，系統完全無法彈性應變，導致車隊油耗激增、司機超時工作以及客戶抱怨連連。', 
+              sol: '顛覆傳統規則引擎，導入強化學習框架建立具備動態適應能力的派車 Agent。框架比較：Ray RLlib（支援大規模分散式運算，適合車隊規模）對比 AnyLogic / Microsoft Project Bonsai（專為營運模擬設計的平台）。', 
+              poc: '建立虛擬城市交通網模擬器，訓練 RL 模型連續進行 10 萬步派車試錯。實測該 Agent 遇到虛擬突發塞車事件時，是否具備「為了追求全局耗時最短而主動改變策略繞路」的應變能力。', 
+              risk: 'RL 模型在其策略未充分收斂的探索 (Exploration) 階段，極容易做出「嚴重繞遠路」等違反常理的災難性實驗決策。在未經嚴格驗證前，絕對不宜直接連動並指揮實體物流車隊。', 
+              human: '必須強制引入人類專家把關。系統需先以「影子模式」上線，資深調度員並行檢視 AI 建議路線與人類原本路線；經過充分人工比對確認安全與合理性後，才逐步放權。' },
+
+            { id: 20, cat: 3, title: '過度擬合與資料增強', q: '訓練準確率 98%，測試僅 72%。欲提升適應力與多樣性，何者最適合？', opts: ['(A) 增加模型深度；', '(B) 對影像進行旋轉、翻轉等隨機變化；', '(C) 提高訓練速度；', '(D) 僅保留表現好的資料'], ans: 'B', 
+              exp: '模型在訓練集 98% 但測試集僅 72%，是極度經典的「過度擬合 (Overfitting)」。題目要求「增加訓練資料多樣性」以提升泛化能力，最有效且常用的手段就是對影像進行「資料增強 (Data Augmentation)」。', 
+              pain: '工廠剛上線的瑕疵檢測 AI 模型，在實驗室的黃金樣本上表現極佳；但到了真實產線上，只要零組件擺放角度偏斜，或遇到下午日照光線變化（測試集條件），模型就會死板地漏抓一大堆瑕疵品。', 
+              sol: '在模型訓練前置管線中，強力導入影像資料增強套件。套件比較：Albumentations (執行速度極快，支援極豐富轉換種類) 對比 Keras 內建 Preprocessing Layers (能與 TensorFlow 原生緊密整合)。', 
+              poc: '調出 500 張特定瑕疵照片，透過套件自動加入隨機旋轉、裁切、亮度擾動，將資料庫擴充至 5000 張。使用這批擴展資料重新訓練模型，實測測試集的準確率是否顯著拉升。', 
+              risk: '若盲目套用變換而不考慮物理限制，如車牌辨識將數字 "6" 垂直翻轉變成 "9"，將會創造出完全錯誤的訓練樣本，嚴重污染並混淆模型的學習邏輯。', 
+              human: '品管工程師必須透過「黃金樣本測試」，隨機抽檢系統合成的增強圖片，親自確認這些經過旋轉或加噪後的瑕疵特徵，在真實物理產線上是否仍具備合理發生可能性。' },
+
+            { id: 21, cat: 4, title: '擴散模型生成影像', q: '需自動產生具有高度視覺品質、細節穩定且風格變化自然的服裝草圖，哪種技術最適合？', opts: ['(A) SVM；', '(B) GAN；', '(C) 決策樹；', '(D) 擴散模型（Diffusion Model）'], ans: 'D', 
+              exp: 'GAN 雖然能生成圖像，但在處理高解析度、細節穩定性以及多樣性控制上常面臨瓶頸。擴散模型 (Diffusion Model) 透過逐步加噪與去噪過程，已被公認為在產生極緻視覺品質與穩定細節上最強大且主流的技術。', 
+              pain: '服飾品牌的設計師在每季初的發想階段，都需要產出上百張風格一致但細節略有不同的概念草圖供高層挑選。傳統的純手繪流程，無法滿足精細控制版型細節且快速產出的商業要求。', 
+              sol: '全面導入基於擴散模型的現代化生成式 AI 平台。方案比較：部署 Stable Diffusion (開源、可安裝地端保護機密、能外掛 ControlNet 精確控制) 對比 Midjourney (商業服務、畫質無與倫比但難控版權)。', 
+              poc: '建置 Stable Diffusion 環境並載入 ControlNet 插件。設計師輸入簡單服裝輪廓線稿，實測系統能否依提示詞，穩定生成出保留該版型輪廓，但具備不同布料材質的高品質草圖。', 
+              risk: '生成式 AI 易陷版權灰色地帶。若生成草圖中不慎出現具備明顯他牌商標特徵或專利版型，一旦投入量產，企業將面臨難以估算的商標或設計專利侵權訴訟。', 
+              human: '設計總監必須嚴格把關要被採納的生成草圖。AI 產出僅能作為靈感跳板，總監需親自篩選並指導設計師進行大量的手工二次創作與細節修改，確保品牌絕對原創性。' },
+
+            { id: 22, cat: 4, title: 'VAE 異常檢測', q: '在缺乏完整異常標註資料下，辨識設備感測數據與一般運作型態不同的狀態並預警，何種技術較適合？', opts: ['(A) SVM 異常分類；', '(B) 決策樹規則；', '(C) 變分自編碼器（VAE）學習正常分佈；', '(D) GAN 預測異常'], ans: 'C', 
+              exp: '題目限制「缺乏完整異常標註資料」，直接宣判依賴標籤的監督式學習出局。此時最聰明的策略是使用 VAE 讓模型僅學習海量「正常運作」資料的分佈。一旦輸入異常數據，VAE 將無法順利重構，產生極高重構誤差來達到預警。', 
+              pain: '工廠核心設備可能發生的故障種類成千上萬，且幾年才發生一次，根本無法收集到足夠豐富且均衡的「異常標籤數據」來訓練傳統監督式模型。這導致工安防線始終存在盲區。', 
+              sol: '轉變思維，導入非監督式學習的 VAE 架構進行異常檢測。方案評估：使用 TensorFlow 框架從底層自建專屬的 VAE 模型（適合高度掌握自家演算法）對比直接租用雲端大廠 Anomaly Detection API。', 
+              poc: '捨棄尋找故障數據，僅匯入設備過去一個月絕佳狀態的「健康正常數據」訓練 VAE。隨後輸入一段模擬損壞的強烈異常數據，實測重構誤差曲線是否如預期出現峰值警報。', 
+              risk: '若餵給 VAE 學習的所謂「正常健康資料」本身，就已經默默包含了一些未被察覺的微小磨損異常，模型會誤將其認定為正常狀態分佈，導致上線後嚴重漏報真實危機。', 
+              human: '這類 AI 只能發出「與平常不同」的警報，無法精確定位損壞。設備工程師需定期人工審查被系統判定為「高重構誤差」的波段，實地比對確認該時間點是否真的對應硬體異常。' },
+
+            { id: 23, cat: 5, title: '批次 vs 即時推論', q: '關於「批次推論」與「即時推論」特性敘述何者正確？', opts: ['(A) 批次同步回傳，即時非同步；', '(B) 批次容忍延遲重吞吐量最佳化，即時重穩定與低延遲；', '(C) 批次僅適用影像；', '(D) 即時單筆，批次多筆即時回傳'], ans: 'B', 
+              exp: '推論架構選擇取決於場景。批次推論 (Batch Inference) 用於離線、可容忍延遲的處理，優化核心是極大化「吞吐量 (Throughput)」；即時推論面對線上使用者，優化目標是追求毫秒級「回應延遲 (Latency)」與高可用性。', 
+              pain: '公司新上線的 AI 商品推薦系統運算過於複雜，導致客戶進入購物車頁面時畫面會卡頓長達 2 秒。這短暫延遲嚴重破壞購物體驗，導致購物車放棄率飆升。', 
+              sol: '重構 AI 推論機制架構。針對靜態推薦改採「離線批次推論預運算」並存入 Redis 高速快取；對於動態生成推薦，導入 NVIDIA Triton Inference Server 以極致優化即時推論效能。', 
+              poc: '架設 Triton 伺服器模擬黑五極端流量。實測在 1000 QPS (每秒請求數) 高併發壓力下，其 P99 延遲指標是否能穩穩壓制在 100 毫秒以內。', 
+              risk: '若將高度依賴即時行為的推薦模組，硬改成更新頻率極低的離線批次推論，可能導致客戶不斷看到過期活動或已售罄的商品，引發強烈客訴。', 
+              human: 'SRE 工程師必須設定嚴密自動化監控。一旦偵測即時推論引擎異常或延遲超標，系統需能自動降級 (Degrade)，瞬間切換回最陽春但絕對不會卡頓的靜態預設推薦。' },
+
+            { id: 24, cat: 4, title: 'RLHF 典型活動', q: '導入人類反饋強化學習（RLHF）以優化 LLM 偏好，下列何者最不屬於其階段典型技術活動？', opts: ['(A) 人工評估建立偏好資料；', '(B) 訓練能判斷品質的獎勵模型；', '(C) 調整生成策略符合偏好；', '(D) 以未標註語料進行長週期表示學習訓練'], ans: 'D', 
+              exp: 'RLHF 是一個用於「微調」LLM 使其符合人類偏好的流程，核心步驟為選項 A、B、C。選項 D 描述的「消耗海量未標註語料進行長時間訓練」，是從無到有打造模型的「預訓練 (Pre-training)」階段，完全不屬於 RLHF 範疇。', 
+              pain: '公司直接下載開源大模型充當內部客服助理，但模型總是給出極度冗長廢話或語氣太輕浮。光靠提示詞 (Prompt) 無法徹底修正其骨子裡惹人厭的說話習慣。', 
+              sol: '啟動專案導入 RLHF 流程，將模型價值觀嚴格對齊企業規範。評估：採用 TRL (Transformer Reinforcement Learning) 開源框架自行打造管線，對比直接採購第三方 AI 平台端到端 RLHF 服務。', 
+              poc: '動員專員收集 500 筆「好/壞回答」人工排序數據。以此訓練獎勵模型 (RM)，再透過 PPO 演算法優化原始 LLM。實測微調後，模型輸出語氣是否變得精煉專業。', 
+              risk: '「獎勵模型」完全學習人類標註者的品味。如果標註團隊具備強烈政治或性別偏見，獎勵模型將吸收並放大這些偏見，導致企業 AI 上線後隨時噴出公關災難言論。', 
+              human: '跨部門高階主管與法遵人員必須對標註完成的偏好資料進行「交叉盲測」與抽樣審查，確保教導 AI 的偏好指南完全符合企業公開、中立的形象規範。' },
+
+            { id: 25, cat: 5, title: 'LLM 批次處理', q: '大型語言模型推論請求批次處理（Batching）的影響，敘述何者最正確？', opts: ['(A) 提升資源效率增加吞吐量，但部分情境對單筆延遲造成影響；', '(B) 加快單筆回應；', '(C) 僅降低記憶體不影響吞吐；', '(D) 低併發下明顯提升效能'], ans: 'A', 
+              exp: '將多個使用者請求合併成一個 Batch 丟給 GPU 運算，可極大化 GPU 利用率，顯著提升系統「吞吐量」。但系統必須花時間等待請求湊滿，勢必會稍微增加單筆提問的「等待延遲時間」。', 
+              pain: '企業內部 GenAI 服務在下午下班前回報的尖峰時段，經常因瞬間湧入提問導致系統超載卡頓。但後台監控顯示 GPU 算力根本沒有被徹底吃滿。', 
+              sol: '淘汰粗糙 API 伺服器，導入具備「連續動態批次處理」的推論引擎。比較：vLLM (首創 PagedAttention，記憶體管理極佳) 對比 Hugging Face TGI (企業級支援完善)。', 
+              poc: '在相同硬體環境下使用 vLLM 重新部署大模型。透過壓力測試模擬 50 個員工同時提問的高併發情境，對比新舊系統在整體吞吐量 (Tokens/s) 上的翻倍提升。', 
+              risk: '若將 Batch Size 上限設定過度貪婪，在處理超級長文請求時，會瞬間消耗掉天文數字的 GPU 記憶體，直接引發 OOM (Out of Memory) 崩潰造成服務大中斷。', 
+              human: 'AI 系統運維人員 (SRE) 需隨時透過監控儀表板緊盯 GPU 記憶體水位，並依據使用者文本長度變化趨勢，動態或手動微調 Max Batch Size 安全上限。' },
+
+            { id: 26, cat: 4, title: 'LIME 解釋技術', q: '在可解釋 AI (XAI) 中，LIME 屬於哪一類？', opts: ['(A) 內建可解釋模型；', '(B) 對話式解釋系統；', '(C) 後處理模型解釋(post-hoc)；', '(D) 代理模型完全取代'], ans: 'C', 
+              exp: 'LIME 的設計哲學是「不干涉原本模型」。它將複雜神經網路視為黑盒，在預測完單一樣本後，在該樣本附近進行隨機擾動採樣，並用採樣訓練簡單線性模型來提供解釋。這種事後分析歸類為後處理解釋 (Post-hoc)。', 
+              pain: '銀行開發的黑盒 AI 信用評分模型準確率高，但經常被客戶投訴「憑什麼拒絕核貸卻給不出具體理由」，面臨金管會對於演算法透明度的嚴厲調查風險。', 
+              sol: '不改變現有高效黑盒模型前提下，在後端串接 XAI 工具進行「局部解釋」。比較：採用 LIME (運算速度極快、解釋直觀) 對比 SHAP (理論極度嚴謹，但計算耗時)。', 
+              poc: '針對一筆被 AI 拒絕的特定貸款案件呼叫 LIME 模組。實測能否在一秒內產出該次拒絕的局部影響特徵權重長條圖（如明確指出：信用卡遲繳次數權重極高）。', 
+              risk: 'LIME 依賴局部擾動採樣。如果系統將擾動範圍設定太寬或太窄，可能會產生與黑盒模型整體真實邏輯完全矛盾的「虛假解釋」，嚴重誤導客戶與稽核。', 
+              human: '解釋不能直接扔給客戶。法遵與稽核人員需定期將 LIME 產出的解釋，與銀行傳統授信常理進行人工交叉核對，確認 AI 拒絕理由是否真具備合理商業邏輯。' },
+
+            { id: 27, cat: 4, title: 'SHAP 值應用', q: '下列何者最符合 SHAP 值所提供的資訊？', opts: ['(A) 訓練中對損失函數收斂的影響；', '(B) 自動篩除低重要變數；', '(C) 單一預測結果中，各輸入特徵對最終輸出產生的貢獻分配；', '(D) 降低計算複雜度'], ans: 'C', 
+              exp: 'SHAP 理論基礎來自博弈論夏普里值。它解決分贓問題：能極其精確地量化出在「單一特定樣本」的最終預測結果裡，各個輸入特徵究竟分配到了多少正向推升或負向扣分的貢獻值。', 
+              pain: '電信公司高價值客戶流失預測系統每天吐出紅色警報名單，但前線業務員看著冰冷的高流失機率數字，完全不知道該從哪個痛點著手挽留該特定客戶。', 
+              sol: '將單純的預測機率，升級為包含 SHAP 貢獻度的行動情報。底層技術評估：若模型是 XGBoost，強烈建議採用 TreeExplainer (專為樹模型優化的極速演算法)。', 
+              poc: '隨機挑選一名流失機率高達 90% 的企業大戶計算 SHAP 值。系統不但要亮紅燈，還要能明確印出長條圖指出：「上月技術客訴未解」是造成機率飆升的最大負面因子。', 
+              risk: '針對高維度複雜深度模型，計算一次精確 SHAP 值消耗的運算成本極高。若不自量力掛載於需極低延遲的線上即時預測系統，將直接拖垮伺服器整體效能。', 
+              human: '業務員絕對不能像機器人般直接對客戶唸出 AI 貢獻數值。必須吸收 SHAP 提示的最大負面因子後，依據自身情商經驗，規劃客製化且極度委婉的挽留話術。' },
+
+            { id: 28, cat: 4, title: '反事實解釋', q: '在金融業導入可解釋性技術時，反事實解釋最符合下列哪一種應用？', opts: ['(A) 預測整體違約率；', '(B) 回溯歷史呆帳因素；', '(C) 在模型不變前提下，分析客戶申請資料變動對授信決策結果的影響；', '(D) 推薦商品'], ans: 'C', 
+              exp: '反事實解釋 (Counterfactual) 專注於回答「What-if」假設性問題：「如果當初這位客戶的特徵做出怎樣的『最小限度改變』，模型預測結果就會翻轉？」。因此，分析資料變動對決策結果的影響是其最經典應用。', 
+              pain: '客戶申請信貸被 AI 秒拒，當焦急詢問客服「到底需要改善什麼條件才能成功核貸？」時，客服看著黑盒系統啞口無言，引發客戶強烈憤怒與不滿。', 
+              sol: '突破傳統解釋 AI 瓶頸，導入反事實解釋演算法庫。建議評估微軟釋出的開源框架 DiCE (Diverse Counterfactual Explanations)，自動為同一預測結果生成多組不同建議組合。', 
+              poc: '對被拒絕的客戶案例執行 DiCE 演算法。系統自動運算並產出具體條件句：「若您的信用卡循環負債減少 5 萬元且保證人年資大於 5 年，本模型即會給予核貸」。', 
+              risk: '系統產出的反事實建議若不加篩選，包含「不可改變特徵」（如 AI 建議：若您年輕十歲就會過件），將瞬間引發毀滅性的年齡或性別歧視公關風暴。', 
+              human: '系統後台參數必須嚴格鎖定只能針對「可行動特徵（Actionable Features，如存款）」進行變動計算。冷硬建議須經由客服人員轉譯為具備溫度的說詞才能告知客戶。' },
+
+            { id: 29, cat: 4, title: '顯著性圖', q: '利用「顯著性圖（Saliency Map）」來輔助理解深度學習模型行為。何者最符合此技術的主要用途？', opts: ['(A) 量化整體準確度平均影響；', '(B) 標示輸入資料中對單一預測結果影響較大的區域或部分；', '(C) 評估穩定性變化；', '(D) 比較泛化能力'], ans: 'B', 
+              exp: '人類渴望知道電腦視覺 AI 到底是看著圖片裡的「哪裡」做出判斷。顯著性圖透過精密梯度反向計算，能以彩色熱力圖形式，高亮標示出輸入影像中，對最終預測結果貢獻最大的具體像素區域。', 
+              pain: '醫學影像 AI 輔助系統自信判斷病患 X 光片中有惡性腫瘤。但主治醫師完全無法確認模型究竟是依據肺部的哪一塊陰影做出判斷，基於醫療責任根本不敢輕易採信 AI。', 
+              sol: '將單純的預測機率輸出升級，全面整合顯著性圖技術。比較：Grad-CAM (專為 CNN 設計，計算快但熱力圖較粗略) 對比 Integrated Gradients (理論紮實，能產出像素級更精細熱力圖)。', 
+              poc: '輸入一張確診肺部 X 光片，系統吐出腫瘤機率時需同步覆疊產出彩色熱力圖。實測檢驗該熱力圖中被標示的深紅色高亮區域，是否精確重合於資深醫師人工標註的真實病灶。', 
+              risk: '熱力圖經常暴露 AI 致命缺陷：模型可能學到「捷徑」。例如，AI 判斷有病是因為看到圖片邊緣特定醫院儀器的浮水印，而非真正病理特徵，這是極其致命的醫療隱患。', 
+              human: '熱力圖絕非最終診斷。主治醫師簽發報告前，必須強制比對熱力圖，運用專業醫理親自確認 AI 是基於真實病理特徵進行診斷而非被背景雜訊誤導，才能將意見納入決策。' },
+
+            { id: 30, cat: 2, title: '機器學習分類', q: '銀行想建立洗錢檢測系統，擁有過去 5 年標記為「異常」和「正常」的交易記錄。想自動識別新交易，最適合哪種方法？', opts: ['(A) 監督式學習的分類問題；', '(B) 非監督式學習的分群；', '(C) 強化式學習；', '(D) 關聯規則挖掘'], ans: 'A', 
+              exp: '擁有標記為異常/正常的歷史紀錄，決定了它是「監督式學習」；預測目標為異常或正常兩種絕對不同的離散狀態，這決定了它是一個標準的「分類 (Classification) 問題」。', 
+              pain: '銀行防制洗錢(AML)團隊每天被迫面對傳統規則引擎觸發的海量假警報。純人工審核耗時且標準不一，極易不慎漏放掉極度狡猾的真實跨國犯罪交易。', 
+              sol: '淘汰死板靜態規則，全面導入監督式分類演算法建立 AI 守門員。比較：XGBoost (金融業表格數據霸主，準確且解釋性極佳) 對比 LightGBM (處理千萬級別資料訓練極快)。', 
+              poc: '將過去 5 年累積的人工標記資料切分，訓練 XGBoost 洗錢分類模型。投入近三個月未參與訓練的新交易資料，實測其在「精準率」與「召回率」上的雙重表現。', 
+              risk: '如果過去 5 年的歷史標記資料中，本身就存在當時審查人員的嚴重偏誤（如對某特定國籍匯款過度敏感），新訓練的 AI 將會無腦繼承並放大這些不公平的錯判邏輯。', 
+              human: 'AI 在金融風控中只能扮演超級助理。合規專員必須將 AI 預測的高風險異常名單進行最終的人工盡職調查 (Enhanced Due Diligence)，絕對不可讓 AI 直接阻斷跨國交易。' },
+
+            { id: 31, cat: 2, title: '半監督式學習', q: '農場收集大量作物影像，但只有 30% 有病害標註，70% 沒有標籤。希望充分利用所有資料訓練，最適合哪種方法？', opts: ['(A) 半監督式學習；', '(B) 監督式學習；', '(C) 非監督式學習；', '(D) 強化式學習'], ans: 'A', 
+              exp: '當訓練資料集中，同時混合了少量的「有標籤資料（30%）」與海量的「無標籤資料（70%）」，且我們期望能巧妙結合兩者來共同提升模型效能時，這種框架即被明確定義為「半監督式學習」。', 
+              pain: '聘請具備豐富經驗的植物病理學家逐一標註病害影像，成本極高且進度極端緩慢；導致系統後台雖然擁有幾十萬張高清影像，卻有 70% 因缺乏標籤而白白閒置浪費。', 
+              sol: '放棄純監督式訓練的死胡同，採用半監督式學習框架榨取未標註資料價值。比較：傳統 Pseudo-labeling (偽標籤法，直觀易實作) 對比 FixMatch (視覺領域公認效能強悍的半監督框架)。', 
+              poc: '先僅使用 30% 有標籤資料訓練基礎模型；接著讓此模型對 70% 無標籤影像進行預測，挑出信心度極高的結果打上「偽標籤」，混合原資料重新訓練，觀察準確率是否突破提升。', 
+              risk: '半監督學習存在致命「確認偏誤」。若第一階段基礎模型很弱產生錯誤高信心預測（如把反光誤認白粉病），會為海量圖片打上錯誤偽標籤，污染整個訓練集導致模型崩潰。', 
+              human: '不能完全放任系統自己教自己。核心植物病理學家需定期抽檢並手動修正系統大量產出的「偽標籤」，確保模型自我學習演化的方向，沒有發生嚴重的認知偏移。' },
+
+            { id: 32, cat: 3, title: '影像分割', q: '環保局 AI 系統需在影像中找出煙霧區域，並「精確標示出煙霧的像素區域」。這主要屬於電腦視覺哪個領域？', opts: ['(A) 影像分類；', '(B) 物件偵測；', '(C) 影像分割；', '(D) 人臉辨識'], ans: 'C', 
+              exp: '影像分類只告訴你「有沒有煙霧」；物件偵測會用粗略矩形方框匡起來；而「精確標示出像素區域」，這種在像素層級將特定目標不規則範圍完整切分出來的技術，正是「影像分割」。', 
+              pain: '傳統環保監測依賴物件偵測技術，但煙霧形狀千變萬化。粗糙的矩形方框會把大量乾淨背景雜訊也匡進去，導致環保局無法精確計算煙霧實際面積濃度，難作開罰依據。', 
+              sol: '將視覺核心引擎全面升級為語意分割 (Semantic Segmentation) 深度學習模型。比較：採用 U-Net (對不規則邊界輪廓抓取極為精準) 對比 Mask R-CNN (能分別計算多根煙囪獨立煙霧團面積)。', 
+              poc: '使用 U-Net 對工業區煙囪監視器歷史畫面進行像素級預測模型訓練。將模型輸出的不規則輪廓面積，與環保局專家手工描繪的真實面積進行比對，實測系統自動估算的像素誤差率。', 
+              risk: '影像分割極度依賴清晰像素特徵。在夜間或天候不佳（大霧、下雨）時，系統對煙霧邊界的像素判定極易發生嚴重誤判或範圍失準。若直接依此自動開罰將引發無數訴願抗議。', 
+              human: '環保局執法稽查員只能將 AI 圈出的不規則像素面積估算，視為「高優先級的輔助警示證據」。最終決定是否開單前，仍需調閱現場微型感測器空品數值進行綜合判定。' },
+
+            { id: 33, cat: 3, title: 'LSTM 時間序列', q: '預測公車到站時間，因路況複雜，傳統 RNN 難以保留較早期重要資訊。哪種架構最能解決此問題？', opts: ['(A) CNN；', '(B) 自編碼器(AE)；', '(C) 全連接網路(FCNN)；', '(D) 長短期記憶網路(LSTM)'], ans: 'D', 
+              exp: '傳統 RNN 處理長距離時間序列時會遭遇嚴重「梯度消失」，忘記早期重要特徵。LSTM 透過內部「門控機制(遺忘/輸入/輸出門)」主動決定記憶保留與捨棄，完美解決長期記憶依賴問題。', 
+              pain: '公車到站預測系統僅依賴當下車速計算。遇到超長路線或下班尖峰複雜路況時，前幾站的嚴重塞車效應無法遞延計算，導致 APP 預測時間大失準，客訴信箱被灌爆。', 
+              sol: '重構預測核心，導入專精於複雜時間序列的 LSTM 深度學習模型。比較：利用 PyTorch 高度客製化實作 LSTM 網路（捕捉非線性交通特徵）對比採用 Prophet 傳統統計模型（部署容易但應變弱）。', 
+              poc: '萃取塞車路線過去一個月完整站點間行駛時間序列，融合即時天氣與號誌數據作為特徵。測試 LSTM 模型對未來 30 分鐘遙遠站點到站時間的預測，檢視 MAE 是否低於 3 分鐘。', 
+              risk: '深度學習時間序列模型本質是在尋找歷史規律。若突然遭遇未見過的「非歷史常態黑天鵝事件」（如突發大型封路遊行），過度依賴歷史的 LSTM 反而會瞎猜給出嚴重誤導時間。', 
+              human: '系統必須保留一鍵超控 (Override) 機制。交控中心收到重大事故通報時，調度員需能立即手動介入後台強制關閉 AI 預測數字，發布醒目的「路況異常、預測無法提供」跑馬燈公告。' },
+
+            { id: 34, cat: 5, title: 'AutoML 快速建模', q: '公司缺乏 AI 專業人員且需快速上線驗證詐欺識別效果。在去識別化後，哪種平台類型最適合？', opts: ['(A) 從零建立深度學習框架；', '(B) 開源框架客製化開發；', '(C) 使用雲端 AutoML 平台自動化訓練；', '(D) 購買現成軟體'], ans: 'C', 
+              exp: '情境痛點：「缺乏 AI 專業人員」且「急需快速上線驗證」。雲端 AutoML 平台專為此而生，能在不具備深厚演算法背景下，全自動完成特徵工程、演算法挑選與調參，產出具水準的模型。', 
+              pain: '業務端面臨嚴峻詐欺騙保危機，但 IT 部門都是傳統軟體工程師，根本沒有懂演算法的資料科學家，無法從零撰寫複雜機器學習程式碼，防詐專案陷入死胡同。', 
+              sol: '拋棄自建研發幻想，全面擁抱雲端自動化機器學習 (AutoML) 平台。比較：Google Cloud AutoML（防呆、產出品質高）對比 Microsoft Azure Automated ML（與企業既有 Active Directory 整合強）。', 
+              poc: '將去識別化的 10 萬筆歷史理賠 CSV 檔案上傳 AutoML 平台。一鍵啟動讓平台自動跑遍演算法挑選最佳模型，並直接利用平台生成的一鍵部署預測 API 進行內部連線驗證。', 
+              risk: 'AutoML 產出的是一個徹頭徹尾的「超級黑盒子」。若自動生成的模型隱含了未知歧視性特徵偏差，當面臨外部金融稽核審查時，企業將完全無法提出有條理的決策邏輯解釋。', 
+              human: '訓練過程雖全自動，但上線絕不能自動。業務主管與風控專員必須強制檢視 AutoML 平台出具的「特徵重要性 (Feature Importance)」報表，透過人類業務常識確認 AI 不是靠荒謬特徵抓詐欺後才核准上線。' },
+
+            { id: 35, cat: 1, title: '去識別化與隱私', q: '釋出市民用電資料供學術研究。考量資料涉及可識別個資且須符合保護規範，哪種處理最為適當？', opts: ['(A) 提供完整資料並合約保密；', '(B) 僅保留用電數值移除其他；', '(C) 對具識別風險欄位轉換處理，並移除直接識別資訊；', '(D) 僅加密提供'], ans: 'C', 
+              exp: '在資料開放 (Open Data) 實務中，必須在「研究價值」與「隱私合規」間取得平衡。徹底移除直接識別資訊，並對間接識別特徵進行數學泛化轉換，才是能保留研究價值又合規的標準做法。', 
+              pain: '市府長官強烈希望將海量市民用電紀錄掛載於 Open Data 平台。但法制局強力阻擋，警告若直接釋出明細紀錄恐嚴重觸犯個資法，引發市民隱私遭全面侵犯的恐慌抗議。', 
+              sol: '引入專業且符合國際標準的資料去識別化 (De-identification) 工程技術。比較：採用 K-Anonymity (K-匿名化，隱藏個體) 對比 Differential Privacy (差異隱私，注入數學雜訊提供數學級隱私保證)。', 
+              poc: '萃取一萬筆資料樣本，將真實姓名身分證無情移除；並將年齡從具體歲數強制轉為「20-30歲」等大區間。實測釋出這批模糊化資料，是否仍能讓大專院校跑出有意義的用電尖峰趨勢分析。', 
+              risk: '去識別化是一場永無止境的軍備競賽。如果區間轉換設定不夠徹底，惡意駭客極可能透過收集多個不同來源公開匿名資料庫進行「拼圖攻擊 (Mosaic Attack)」，成功還原出特定市民真實身分。', 
+              human: '不可完全依賴自動化腳本。法制局與隱私保護專責人員必須依法嚴格審查去識別化處理後的最終資料樣本。只有在人類專家親自確認無重新識別風險後，才能按下對外釋出的發布按鈕。' },
+
+            { id: 36, cat: 5, title: '弱 AI 定義', q: '系統穩定判讀 PCB 缺陷，但侷限於特定應用範圍，無法直接遷移至其他決策任務。此特性符合何種 AI？', opts: ['(A) 弱 AI (Weak AI)；', '(B) 強 AI (Strong AI)；', '(C) 通用人工智慧 (AGI)；', '(D) 超級人工智慧 (ASI)'], ans: 'A', 
+              exp: '無論 AI 在單一任務表現多神乎其技，只要模型架構與訓練目標被「侷限於特定、狹窄的單一應用領域」，且無法運用常識解決跨領域問題，在學術與業界定義上即為「弱 AI (Weak AI)」或專用 AI。', 
+              pain: '管理層受各種誇大不實 AI 媒體新聞炒作影響，誤以為花大錢導入一套 AI 系統，就能自動解決工廠內從瑕疵檢測到排程、財務的所有問題，對專案成效抱持極度不切實際的萬能期望。', 
+              sol: '在專案章程 (Project Charter) 中毫不妥協地白紙黑字明確定義：本次導入範疇為標準 Weak AI 應用。專注於打造單一視覺瑕疵檢測演算法 (如 YOLO 架構)，拒絕任何範圍蔓延 (Scope Creep)。', 
+              poc: '安排針對高階主管的實機展示。實測並展現該模型在特定 PCB 板「細微刮痕與惡性短路」上超越資深作業員的極高準確率，以堅實數據證明其在「單一特定任務」上無可取代的投資價值。', 
+              risk: '若專案經理扛不住高層壓力，強行將這個針對 PCB 板訓練出的狹隘模型，未經重訓就草率硬套用至全新產線 (如光滑金屬機殼外觀檢測)，將導致辨識準確率雪崩驟降，引發災難性產線停擺。', 
+              human: 'AI 應用規畫師與 PM 必須在導入前承擔「期望值管理」重任。透過簡報明確且堅定向主管劃清系統「能做什麼」與「絕對不能做什麼」的界線，從根源避免後續因認知落差引發的專案究責。' },
+
+            { id: 37, cat: 5, title: '即時推論優化', q: '系統需在 3 秒內完成瑕疵判定，近期在尖峰時段容易出現判定延遲影響節奏。若要優先改善，何種做法最適合？', opts: ['(A) 擴充資料儲存容量；', '(B) 強化即時資料處理與推論計算資源配置；', '(C) 調整資料格式；', '(D) 增加清理機制'], ans: 'B', 
+              exp: '情境核心痛點是系統無法滿足「3 秒內完成」的低延遲要求。擴充容量或清理資料都無助於加速運算。要立竿見影降低延遲、解決算力卡頓，最直接物理有效的方法就是擴充推論階段的計算資源。', 
+              pain: '高速自動化產線要求每 3 秒通過一片精密布料。但 AI 檢測系統在大量影像湧入的尖峰時段，因算力不足頻繁卡頓，導致未及時判定的布料大量堆積在輸送帶上，嚴重癱瘓整體製造產能。', 
+              sol: '針對即時推論基礎設施架構進行徹底效能優化。比較：採購極致算力邊緣運算硬體 (Edge AI 方案，如部署 NVIDIA Jetson 於機台旁) 對比 採用雲端 Kubernetes 架構設定依流量超微秒級動態彈性擴容。', 
+              poc: '在實驗產線上，將推論引擎遷移至效能更強大的邊緣伺服器上。使用壓力測試工具模擬產線最狂暴尖峰時段的超大影像流量湧入，嚴格確認系統 P99 延遲指標皆能穩穩低於致命的 3 秒紅線。', 
+              risk: '算力恐慌症易引發財務災難。若遇到卡頓就毫無節制瘋狂增加最頂級 GPU 資源，雖解決延遲但會導致專案營運成本 (OPEX) 如火箭暴增，最終嚴重超出原先核准的預算與投資回報率 (ROI) 評估。', 
+              human: 'IT 基礎架構工程師必須在系統後台設定極度精細的自動化擴縮容監控腳本，確保在夜間或非尖峰低產能時段，系統能自動釋放昂貴的雲端運算資源或讓邊緣設備進入休眠，替企業省下每一分錢。' },
+
+            { id: 38, cat: 3, title: '電腦視覺應用', q: '導入 AI 系統判斷蘋果成熟度，透過分析果實特徵評估並決定採收時機。此系統屬於哪個應用領域？', opts: ['(A) 自然語言處理；', '(B) 電腦視覺 (Computer Vision)；', '(C) 語音識別；', '(D) 推薦系統'], ans: 'B', 
+              exp: '系統核心邏輯是透過攝影機捕捉實體世界畫面，並利用演算法分析提取畫面中物體外觀特徵（如蘋果顏色、表面斑點視覺訊號），這完全隸屬於「電腦視覺 (Computer Vision)」範疇。', 
+              pain: '大型果園極度依賴老農民豐富經驗，純靠肉眼判斷整片果園蘋果成熟度。不僅缺乏可量化客觀標準，且長時間強光下極易因視覺疲勞產生嚴重誤判，導致採收果實品質參差不齊影響售價。', 
+              sol: '在自動化農業機具上導入先進電腦視覺辨識模型。比較：採用 ResNet 等全圖影像分類模型（判斷整張圖熟不熟）對比採用 Mask R-CNN 實例分割模型（精確定位出多顆蘋果並分別提取特徵評估）。', 
+              poc: '蒐集 1000 張橫跨不同天候、光線的蘋果照片。訓練視覺模型學會以特定顏色頻譜與斑點佔比作為判定採收期權重。實測 AI 判定結果與頂級老農民人工判定結果一致性是否達 95% 以上。', 
+              risk: '戶外農業場景是視覺終極夢魘。果園內劇烈陽光變化、樹葉斑駁陰影，或無人車相機鏡頭沾染泥水，都極易嚴重干擾視覺模型特徵提取的穩定性，導致下達錯誤指令錯採大量未熟果造成農損。', 
+              human: '在農業自動化過渡期，決策權不可完全交棒給機器。即便 AI 在採收機台螢幕畫出綠色「建議採收」標記框，農民仍需進行最終一秒鐘快速目視確認；人類大腦確認無誤後才按下啟動機器手臂按鈕。' },
+
+            { id: 39, cat: 2, title: '機器學習任務對應', q: '哪一項應用情境與機器學習類型的搭配最為適當？', opts: ['(A) 少量標註+大量未標註—監督式；', '(B) 點擊歷史標籤預測—非監督式；', '(C) 錯誤損失回饋調整策略—監督式；', '(D) 歷史價格變動模式無標註劃分型態—非監督式'], ans: 'D', 
+              exp: 'A 為半監督；B 預測已知標籤為監督式；C 回饋調整為強化學習。只有 D 完全沒有人工標註，依賴演算法自動探索資料內在趨勢進行劃分，完美對應「非監督式學習」。', 
+              pain: '金融計量分析師面對長達十年、涵蓋數千檔股票且毫無任何標籤的海量歷史跳動資料，人類大腦根本無法客觀歸納出具備統計意義的「市場狀態模式（如盤整、主升段）」，導致策略開發靈感枯竭。', 
+              sol: '破除人工尋找規律迷思，導入時間序列專屬的非監督分群演算法。比較：採用 Time-Series K-Means（運算快，對時間軸微小平移敏感）對比採用 DTW 距離分群（耗時，但能克服趨勢時間軸扭曲錯位）。', 
+              poc: '將過去三年大盤完全無人工標註的收盤價變動曲線輸入 DTW 系統中。實測演算法是否能單憑純數學幾何相似度，自動將數萬段混沌曲線，歸納收斂出「劇烈震盪、溫和爬升」等具備人類交易意義的群集。', 
+              risk: '非監督分群是純粹數學盲盒。找出的分類結果可能幾何空間完美，但在現實金融交易中毫無獲利意義。若研發團隊見獵心喜直接將群集特徵掛載於程式交易模組，將面臨被市場無情雙殺的毀滅性風險。', 
+              human: '頂尖金融工程師必須對 AI 非監督分群出來的每一個群集結果，進行極度嚴格且殘酷的歷史回測 (Backtesting)，並透過深厚金融常識進行嚴密邏輯驗證，確認其具備真實交易獲利價值後才能採用。' },
+
+            { id: 40, cat: 2, title: '不平衡評估指標', q: '產品瑕疵比例極低，模型多數預測為正常品，獲得很高準確率。若希望衡量對瑕疵品的辨識能力，何者最適合作主要指標？', opts: ['(A) F1-score；', '(B) RMSE；', '(C) 準確率(Accuracy)；', '(D) 判定係數(R²)'], ans: 'A', 
+              exp: '這是著名的「準確率陷阱」。當瑕疵品只佔 1% 時，模型全部預測「正常」準確率也能高達 99% 但毫無用處。必須綜合考量「精準率 (Precision)」與「召回率 (Recall)」的調和平均指標 F1-score 來真實衡量。', 
+              pain: '產線真實瑕疵發生率僅 1%。AI 團隊沾沾自喜報告模型擁有 99% 準確率。管理層以為獲得神器，實際上線後真實瑕疵品 AI 連一個都抓不到全當正常放行，引發嚴重客戶退貨危機。', 
+              sol: '徹底改變專案團隊評估思維。廢棄欺騙性的 Accuracy 指標，強力導入「混淆矩陣」視覺化除錯，並硬性規定在模型驗證階段，必須以 F1-score 作為決定模型能否上線的首要唯一綜合評估指標。', 
+              poc: '將號稱 99% 準確率的舊模型重新用 F1-score 無情檢視暴露出其趨近零的殘酷真相。動態向下調整模型分類機率閾值 (Threshold)，實測能否在可容忍範圍內顯著提升模型對少數瑕疵類別的敏感度與 F1 總分。', 
+              risk: '指標優化是零和遊戲。若工程團隊為了達成高層規定的「拉高 F1-score」KPI，過度極端調低判定瑕疵的閾值，會導致模型如驚弓之鳥般瘋狂產出海量假警報 (False Positives)，徹底癱瘓下游負責複檢的人力。', 
+              human: '溝通有時比寫程式困難。資料科學團隊必須準備直觀簡報，用白話語言向非技術背景廠長清楚解釋「為何準確率 99% 的模型其實是個廢物不能用」，從上到下建立起對不平衡資料的正確評估觀念。' },
+
+            { id: 41, cat: 5, title: 'Flash Attention', q: '關於 Flash Attention 改善 Transformer 注意力機制運算效率的主要效益，敘述何者最正確？', opts: ['(A) 忽略影響小權重降低成本；', '(B) 調整計算與資料處理，減少中間結果儲存，改善速度與資源效率；', '(C) 增加並行處理更多頭部；', '(D) 暫存於快取避免重複計算'], ans: 'B', 
+              exp: 'Flash Attention 是革命性底層算子優化技術。它沒有改變注意力機制的數學公式與精準度，而是透過 Tiling (切塊) 技術，極限優化 GPU 記憶體 (HBM 與 SRAM) 間的資料讀寫路徑，減少中間矩陣頻繁存取，達成驚人加速。', 
+              pain: '企業試圖在內部自建大語言模型上導入長達兩萬字法律合約進行摘要。然而每當輸入超長文本，GPU 記憶體就會瞬間被龐大注意力矩陣撐爆，頻繁引發 OOM 崩潰，且推論運算速度慢到業務端根本無法接受。', 
+              sol: '深入系統底層大刀闊斧替換老舊注意力機制實作。強烈建議導入 Flash Attention v2 演算法，將其深度整合至企業現有模型訓練腳本與線上推論框架 (如 vLLM 或 TGI) 之中，從根本解除長文本運算封印。', 
+              poc: '架設兩台規格完全相同的 GPU 伺服器，一台維持原版一台啟用 Flash Attention。同時輸入 8K 超長文本，嚴格對比記錄兩者在峰值記憶體佔用量 (VRAM) 上的懸殊差距，以及推論速度提升倍數。', 
+              risk: '牽涉到底層 CUDA 算子替換的優化技術充滿相容性地雷。若企業機房混合了較舊硬體架構 GPU (如 Turing)，Flash Attention 可能完全無法編譯或執行，導致整個系統升級專案慘遭滑鐵盧。', 
+              human: 'AI 基礎架構工程師不能以為跑得動就算過關。必須撰寫嚴格自動化回歸測試 (Regression Testing) 腳本，逐一比對成千上萬筆測資，確保優化後模型輸出矩陣精度與 Loss 值，與原版笨重模型達到小數點後四位完全一致。' },
+
+            { id: 42, cat: 5, title: 'RAG 增量更新', q: 'RAG 系統每當法規更新需重新建立完整索引，導致系統暫停服務。兼顧效率與更新彈性，何者最適合？', opts: ['(A) 提升推論資源；', '(B) 調整輸出限制；', '(C) 建立固定對照表；', '(D) 導入可支援增量更新的索引管理方式'], ans: 'D', 
+              exp: 'RAG 靈魂是向量知識庫。若每次微小更新都必須將所有百萬份文件重新切塊、Embedding 重建全局索引，是效能災難。導入支援「增量更新」的向量資料庫，讓新文件動態即時併入現有索引中，完全不需停機。', 
+              pain: '法遵部門建置的 RAG 智能問答系統受限於早期僵化架構，只要有一條微小法規異動，IT 就要耗時數小時重新打包整個幾十 GB 企業知識庫。導致白天問答服務被迫長時間中斷，員工無法查詢最新法規引發客訴。', 
+              sol: '全面淘汰舊有僵化向量檢索腳本，升級至企業級專業向量資料庫 (Vector DB) 支援動態增刪查改。比較：Milvus（分散式架構，極端適合處理企業海量數據與高頻更新）對比 Qdrant（雲原生資料庫，單機效能極佳）。', 
+              poc: '在測試環境實作進階文件分塊與唯一 UUID 追蹤機制。在模擬線上 1000 人同時查詢不中斷服務情況下，後台單獨抽換更新某條爭議性新法規。實測更新完成後前端 RAG 是否能一秒內精準擷取到最新版內容。', 
+              risk: '增量更新易引發「知識庫鬼影」危機。若未妥善設計並觸發「舊版廢止文件」的強制刪除連動機制，龐大向量庫內將同時殘留新舊兩版互相衝突知識，導致 AI 隨機撈取產出前後矛盾甚至嚴重違法危險建議。', 
+              human: '系統防呆不如人工作業嚴謹。法遵專員上傳新版法規至後台時不能只按上傳；系統必須強制要求在介面明確勾選點擊「同步作廢並下架關聯之舊版法規」，透過人類行政確認確保知識庫絕對唯一權威性。' },
+
+            { id: 43, cat: 2, title: '學習模式辨析', q: '下列關於學習模式敘述何者錯誤？(2.非監督需定義輸出 3.半監督僅利用未標註 4.自監督需人工)', opts: ['(A) 2、3、6；', '(B) 2、4、5；', '(C) 1、3、6；', '(D) 2、3、4'], ans: 'D', 
+              exp: '綜合測驗題。2錯：非監督沒有正確答案無從定義輸出；3錯：半監督靈魂是「結合」少量標註與大量未標註；4錯：自監督最大突破是利用資料自身結構自動生成偽標籤，完全不需消耗昂貴人工逐筆標註。', 
+              pain: 'AI 專案啟動大會上，業務單位以為導入 AI 系統會自己變聰明，而技術團隊開出百萬筆人工標註資料天價預算。雙方對「到底需投入多少標註成本」缺乏根本共識，導致預算時程評估出現毀滅性落差。', 
+              sol: '破除迷思，由 AI 應用規畫師主導建立企業標準「AI 專案需求與資料現況評估檢核表」。專案 Day 1 強制對齊名詞認知，依據手頭真實資料現況（無標籤、少標籤、預算無限），對症下藥選擇合適學習框架。', 
+              poc: '為說服不願掏錢標註資料的主管，技術團隊盤點現有海量未標籤文本數據。快速實作一個基於自監督學習 (如 BERT 掩碼語言模型) 的小規模驗證模型，透過初步成效展示不靠人工標註也能榨取數據潛力可能性。', 
+              risk: '如果在專案初期因對名詞誤解而選擇錯誤學習模式（例如資料毫無標籤卻硬選純監督式學習，逼迫實習生瞎標一通），將導致專案在痛苦的資料準備階段燒光預算，最終產出完全無用垃圾模型。', 
+              human: 'AI 應用規畫師必須扮演稱職跨部門翻譯官，運用人類溝通藝術依據冷酷資料現況判定合適框架，勇敢糾正業務端「反正 AI 都要人工標註」或「反正 AI 自己會學」這兩種極端刻板迷思。' },
+
+            { id: 44, cat: 1, title: '高度偏態特徵', q: '「年消費金額」等數值特徵呈現高度偏態分布，極端大值影響模型學習穩定性。下列哪種特徵工程方法最適合？', opts: ['(A) 對數轉換（Log Transformation）；', '(B) 區間化（Binning）；', '(C) One-hot 編碼；', '(D) 隨機重抽樣'], ans: 'A', 
+              exp: '真實商業數據如消費金額幾乎呈現極端「右偏態分佈（長尾）」。對數轉換數學特性能力對巨大數值進行強烈壓縮，對小數值溫和展開，將高度右偏畸形分佈拉伸成接近完美的鐘型常態分佈，是穩定模型權重經典魔法。', 
+              pain: '公司砸重金開發的顧客終身價值 (LTV) 預測模型，其權重更新被資料庫裡千分之一擁有天價消費金額的超級 VIP 客戶嚴重綁架。模型發生劇烈震盪，導致對佔營收基石 90% 的平凡客戶預測結果極度荒謬不準確。', 
+              sol: '全面重構特徵工程管線，強制加入數值平滑轉換工程。強烈建議採用 Numpy 套件中的 `Log1p` (計算 log(1+x)) 對數轉換法處理金流龐大數值，完美避免客戶消費為 0 時直接取 log 導致數學負無限大程式報錯。', 
+              poc: '從資料庫倒出原始客戶消費總額繪製極度右偏長尾直方圖。全體數值經過 `Log1p` 轉換後再次繪製直方圖，觀察分佈形狀是否如施魔法般拉近為漂亮鐘型；實測套用此轉換後預測模型整體 MSE 能獲得多大尺度下降。', 
+              risk: '如果在前端預測系統產出結果後，後端工程師「忘記」將預測對數結果透過指數函數 (如 `expm1`) 逆向轉回真實金額尺度，將導致送給前端 APP 顯示的數字小到完全不合邏輯，引發全公司恐慌系統信任危機。', 
+              human: '防呆機制必須落實文件中。首席資料架構師需在 MLOps 規格書中以紅字嚴厲標明「對數特徵轉換雙向還原邏輯」。上線前人工測試階段，要求 QA 針對輸出的絕對數值進行端到端真實商業意義核對確保無誤。' },
+
+            { id: 45, cat: 3, title: '梯度消失與 ReLU', q: '訓練深層網路時發現誤差長時間幾乎未下降，參數更新極小(梯度傳遞效率問題)。最適合的改善策略？', opts: ['(A) 延長訓練時間；', '(B) 增加訓練樣本；', '(C) 調整啟動函數設定；', '(D) 簡化模型結構'], ans: 'C', 
+              exp: '當網路層數極深出現「誤差像死水停滯、參數幾乎不動」，通常意味遭遇「梯度消失」。早期 Sigmoid 函數導數趨近於零，在反向傳播中經過幾十層相乘會徹底衰減。將啟動函數換成正區間導數為 1 的 ReLU 家族是確保梯度貫穿最有效急救策略。', 
+              pain: '研發團隊搭建高達 50 層超深層神經網路，租用極其昂貴雲端算力集群訓練。然而跑了三天三夜燒掉幾萬塊，TensorBoard 上的 Loss 曲線卻像心電圖停止般平的一直線，參數根本沒在更新，高價研發專案陷入徹底停滯。', 
+              sol: '立刻暫停浪費算力任務，由架構師介入診斷計算圖。果斷抽換掉隱藏層中易導致梯度飽和的傳統激勵函數。強烈推薦全面導入 ReLU (Rectified Linear Unit) 或是目前更先進平滑的 GELU 作為核心啟動函數。', 
+              poc: '建立迷你的除錯實驗分支。將原本 50 層網路中隱藏層 Sigmoid 全一鍵替換為 ReLU。重啟訓練任務，重點直接觀察 TensorBoard 上前 10 個 Epoch 「每一層梯度分佈直方圖」，確認死寂底層神經元梯度是否恢復健康波動。', 
+              risk: '過度粗暴全面使用 ReLU 可能踩到隱蔽地雷——「神經元死亡 (Dying ReLU)」。若學習率設定過大導致權重更新進入負值區間，神經元將永遠輸出零且梯度為零，導致該層發生不可逆永久性壞死白白浪費模型容量。', 
+              human: '演算法工程師不能把模型丟到雲端就去喝咖啡。必須在訓練初期密切緊盯各層權重與梯度監控儀表板。一旦人工發現有高比例神經元頻繁陷入「零激活」死亡狀態，需適時改用 Leaky ReLU 進行緊急搶救保持網路活力。' },
+
+            { id: 46, cat: 1, title: '大數據 4V 特性', q: '需整合交通車流(結構化)、路口監視器影像(非結構化)、文字通報(非結構化)。資料格式差異甚大導致整合成本增加。面臨大數據哪項挑戰？', opts: ['(A) Volume；', '(B) Velocity；', '(C) Variety；', '(D) Veracity'], ans: 'C', 
+              exp: '大數據 4V 包含 Volume(海量)、Velocity(即時速度)、Variety(多樣性)、Veracity(真實性)。專案面臨結構化數字、非結構影像、非結構文字等資料格式與型態差異極大的困境，精準唯一對應痛點特徵就是 Variety 多樣性。', 
+              pain: '市府「戰情室計畫」陷入整合泥沼。交控中心放工整 Excel，警察局塞滿監視器 MP4，市民熱線湧入非結構化報案文字。傳統資料庫根本無法跨界聯合查詢這八國聯軍般異質資料，導致戰情室螢幕只有零碎數據孤島毫無決策價值。', 
+              sol: '徹底拋棄傳統 RDBMS 思維，建置具備強大非結構化與半結構化資料吞吐處理能力的「資料湖庫 (Data Lakehouse)」。比較：採用 Databricks（跨格式分散處理一體化環境）對比 AWS Athena 搭配 S3（Serverless SQL 聯合查詢）。', 
+              poc: '擷取車禍魔王級路口一週微型試點。將車流 CSV、影像特徵 JSON、報案語音 TXT 全數倒進 Data Lake。撰寫統一 Spark 處理腳本實測能否跨表關聯分析，跑出「車流量大且影像大雨時，報案出現『追撞』頻率暴增」綜合洞察報告。', 
+              risk: '將所有異質資料毫無紀律全部往資料湖狂倒，若沒有建立極度嚴格的資料治理與後設資料 (Metadata) 管理規範，這座千萬資料湖將迅速腐敗發臭，變成無人能懂能查的「資料沼澤 (Data Swamp)」，連原本查詢都會徹底癱瘓。', 
+              human: '高薪聘請資料架構師必須以鐵腕手段，為不同局處格式迥異的影音文字資料，建立全府統一、標準化具備高度語意描述的「資料目錄 (Data Catalog)」與標籤系統。人類專家賦予清晰索引脈絡才能確保異質大數據具備 AI 開發價值。' },
+
+            { id: 47, cat: 2, title: '結構化預測', q: '下列何種屬於結構化預測問題？', opts: ['(A) 判斷是否為垃圾郵件；', '(B) 預測產品需求量；', '(C) 預測客戶是否可能流失；', '(D) 為語音內容轉換後的文字進行逐詞標註'], ans: 'D', 
+              exp: '任務複雜度有層級之分。選項 A/C 單一標籤二元分類；B 單一連續數值迴歸。D 任務必須針對一段文字中每一個字詞都預測出對應標籤(如實體)，且標籤間存在強烈文法與前後文內部依賴關係(序列結構)，即為經典結構化預測。', 
+              pain: '客服中心語音辨識系統能把客戶抱怨轉成逐字稿，但對後端系統毫無意義。公司亟需從海量逐字稿中極度準確抓出「投訴人姓名、地點、金額」等關鍵實體。傳統將單字拆開獨立分類作法完全無法理解中文前後文關聯導致資訊支離破碎。', 
+              sol: '全面捨棄單詞分類舊思維，導入自然語言處理專精結構化輸出的「序列標註 (Sequence Tagging)」進階演算法。架構比較：採用經典強悍 BiLSTM-CRF 架構（強制模型遵守標籤文法規則）對比直接微調現代模型 BERT 專司 NER 任務。', 
+              poc: '從客服錄音庫隨機抽出 100 句充斥複雜企業黑話與口語化交雜客訴文字。輸入全新搭建模型實測能否克服口語化干擾，整句輸出關聯正確且符合嚴格 BIO 標籤格式實體序列（如完美辨識 B-LOC 與 I-LOC 連續組合框出長地名）。', 
+              risk: '追求極致語意理解代價是恐怖算力消耗。複雜結構預測模型底層推論計算複雜度極高。若在雙11大促銷未經效能優化與硬體擴容，讓上萬名同時進線客服逐字稿瞬間塞滿運算佇列，將可能導致整個解析系統因算力耗盡崩潰停擺。', 
+              human: '中文語言博大精深與企業術語日新月異 AI 永遠無法獨自跨越。資深 NLP 工程師與客服主管需定期抽出模型標註失敗荒謬案例嚴格檢驗，確認系統抽取關係是否符合當代中文習慣；並投入人類智慧持續手動編修擴充專屬領域詞庫維持敏銳度。' },
+
+            { id: 48, cat: 3, title: 'CNN 優勢場景', q: '哪一種應用情境最適合採用卷積神經網路 (CNN) 作為主要架構？', opts: ['(A) 時間序列預測進貨；', '(B) 對話順序判斷客訴；', '(C) 根據倉庫監視器影像，自動辨識貨架是否缺貨並標示區域位置；', '(D) GPS 軌跡預測'], ans: 'C', 
+              exp: 'A、B、D 處理的進貨量、文字、GPS 皆為具備強烈先後順序依賴「時間序列」資料，主流解法為 RNN/LSTM 或 Transformer。選項 C 處理二維像素矩陣靜態影像，CNN 透過卷積核滑動掃描設計，天生是捕捉「空間局部特徵」絕對霸主。', 
+              pain: '電商巨頭超大型物流倉儲面臨巡檢噩夢。目前極度依賴大量倉管人員每天徒步在數萬個貨架間穿梭，僅憑肉眼尋找哪些格子空了需要補貨。作法效率低落至極且經常發生補貨通報嚴重延遲，導致前端熱銷商品顯示斷貨白白流失巨額營收。', 
+              sol: '徹底進行倉儲管理視覺革命。利用密佈倉儲天花板監視器網路佈署基於 CNN 架構先進電腦視覺檢測系統。比較：選擇搭載 YOLOv8 模型（追求極致輕量化與即時運算能力）對比採用 Faster R-CNN 架構（若貨架商品極細小密集需犧牲速度換取極高框選精度）。', 
+              poc: '選定燈光環境最複雜特定走道，截取該區 10 支監視器連續一週高清畫面。訓練 YOLO 模型專注框選出「空置且無物品遮擋貨架區域」。實測上線後系統能否在複雜背景保持 90% 準確率，且系統處理幀數(FPS)是否夠高足以即時消化 10 支鏡頭影像串流。', 
+              risk: 'CNN 強大但極度依賴清晰像素邊緣紋理特徵。真實嚴苛工業倉儲環境中，夜間巡檢光線極暗或棧板包裹被反光極強工業膠膜遮擋；在視覺盲區下 CNN 模型極易發生將反光誤認商品漏判，或將陰影誤認空置的誤判發出災難性擾人假警報。', 
+              human: 'AI 視覺系統是極佳警報器絕不能成為自動補貨決策者。當系統發布紅色缺貨警報，倉管人員必須在手持平板接收警報並同時檢視系統同步傳送的「AI 標記截圖畫面」。透過人類大腦最終一秒快速目視確認無誤後，才正式派遣堆高機補貨避免白跑一趟。' },
+
+            { id: 49, cat: 3, title: '遷移學習 (Transfer Learning)', q: '舊產品有成熟辨識經驗，現開發類似新產品，但標註樣本稀少且昂貴。不增預算下如何提升表現？', opts: ['(A) 增加模型參數規模；', '(B) 資料增強擴展影像；', '(C) 重新蒐集大量影像；', '(D) 採用遷移學習，利用既有預訓練模型進行調整'], ans: 'D', 
+              exp: '面臨新專案「標註樣本極度稀少且昂貴」且「預算鎖死」雙重絕境，A、B、C 皆不切實際。唯一救贖是施展遷移學習：大膽借用舊產品耗費鉅資訓練成熟、已學會辨識通用邊緣紋理特徵的模型大腦(預訓練權重)，僅使用新客戶可憐樣本進行微調，達成降維打擊。', 
+              pain: '公司業務部剛千辛萬苦搶下全新高科技精密零件代工檢測專案。但該零件屬客戶最高機密未上市新品保密極嚴格，簽約後只願提供可憐 50 張瑕疵樣品照片。研發團隊看著少到荒謬資料徹底崩潰，深知根本無法從頭訓練深度學習大模型面臨違約金危機。', 
+              sol: '停止恐慌全面轉換訓練策略，導入業界破局終極武器——遷移學習 (Transfer Learning)。不動用額外預算，直接調出公司內部過去十年累積成熟金屬表面瑕疵檢測產品孕育出的超強大預訓練權重，作為本次新專案起跑線全數繼承通用視覺辨識底蘊。', 
+              poc: '展開外科手術式微調。強制凍結預訓練模型前段高達 80% 負責擷取通用特點（如金屬反光輪廓）特徵層權重使其不被新資料破壞；僅解凍並替換最後幾層負責分類全連接層。使用客戶給的 50 張新照片輕柔微調最後分類層，實測這套移花接木系統最終檢測效能是否奇蹟達標。', 
+              risk: '遷移學習絕非萬靈丹存在致命地雷「負遷移 (Negative Transfer)」。若過去成熟舊產品材質特徵與新產品差異過巨毫無關聯（例如想把『光滑金屬表面』訓練出權重硬套用至『毛絨布匹』瑕疵檢測），模型不僅無法學到有用知識原本舊經驗反會嚴重干擾新特徵學習效能比重練還慘。', 
+              human: '演算法不能盲目遷移。資深領域專家與首席資料科學家必須在專案開跑前召開聯合評估會議。透過人類專家肉眼經驗嚴厲客觀評估「新舊資料域之間特徵相似度」。唯有確認兩者在紋理光影具備足夠共通性後，才能精準決定神經網路中有多少層適合安全凍結多少層必須解凍重練。' },
+
+            { id: 50, cat: 5, title: '醫療篩檢生死指標 (Recall)', q: '醫院篩檢癌症患者，重視盡量找出所有可能患者，希望降低漏診風險(即便增加誤判)。哪個指標最能反映此能力？', opts: ['(A) 精準率；', '(B) 召回率 (Recall)；', '(C) 假陽性率；', '(D) ROC-AUC 曲線'], ans: 'B', 
+              exp: '醫療癌症篩檢院方最高指導原則：「寧可錯殺一百增加誤判，絕不放過一個降低漏診」。召回率(敏感度)嚴格數學定義正是「在所有『實際真的有病』的患者中，被 AI 模型『正確抓出來』的比例」。為死守不放過任何潛在患者底線，最應被無限優化緊盯絕對首要指標毫無懸念就是召回率。', 
+              pain: '醫院剛耗資千萬引進最先進肺癌初篩 AI 系統原本期待減輕醫師負擔。但若該 AI 發生了哪怕只有萬分之一的致命「漏判 (False Negative)」將一個帶有初期惡性腫瘤病患標記為健康，將導致患者徹底錯失黃金治療期造成無價生命損失，更會讓醫院捲入身敗名裂醫療糾紛與天價賠償訴訟。', 
+              sol: '徹底推翻資訊團隊對 AI 評估的工程師思維，全面強制配合醫療專業決策標準。在模型上線前驗證報告中嚴禁將籠統粉飾太平的 Accuracy (整體準確率) 放在第一頁；強制將系統優化標竿與日常監控目標毫無妥協轉移並鎖定至 Recall (召回率/敏感度) 這個關乎生死的單一指標上。', 
+              poc: '在封閉安全測試庫進行殘酷壓力測試。大膽激進向下調整 AI 模型分類機率決策閾值 (Threshold)——將原本只要系統認為超過 0.5 判定有病的標準，下殺降到只要有 0.2 可疑機率就亮紅燈標記有病。實測在這極端標準下當召回率硬生生逼近 99.9% 完美境界時，醫院後續需為此付出多少「假陽性」額外檢驗代價。', 
+              risk: '醫學永遠在天平兩端掙扎。極端追求近乎完美超高召回率無可避免會導致「假陽性 (False Positive)」案件如海嘯激增（即把大量健康人誤判罹癌）。這不僅瘋狂浪費醫院大量昂貴稀缺的後續精密檢驗醫療資源，更會對那些收到誤判報告的無辜病患與其家庭造成長達數週極度心理恐慌精神折磨。', 
+              human: 'AI 永遠無法取代醫師簽名那一刻重量。臨床主治醫師與放射科專家必須深刻認知將這套 AI 系統定位為「極度神經質高敏感度的撒網初篩工具」。對被 AI 放行標記陰性片子可稍放心；但對所有被 AI 亮紅燈標記為陽性案例絕對不可照單全收，必須親自坐在高解析螢幕前運用畢生醫學專業嚴謹二讀確診扛起最終醫療判斷責任。' }
+        ];
+
+        // Ensure 50 items are actually loaded
+        if (db.length !== 50) {
+            console.error("Database length is not 50! Currently:", db.length);
+        }
+
+        // Application State & Logic
+        const app = {
+            state: {
+                currentId: 1,
+                filteredDb: [...db],
+                sidebarOpen: false
+            },
+
+            init() {
+                this.renderChart();
+                this.populateSidebar();
+                
+                // Add keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (document.getElementById('view-question').classList.contains('hidden')) return;
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') this.navigate(1);
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') this.navigate(-1);
+                });
+
+                // Search functionality
+                document.getElementById('search-input').addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase();
+                    this.state.filteredDb = db.filter(q => 
+                        q.q.toLowerCase().includes(term) || 
+                        q.title.toLowerCase().includes(term) ||
+                        q.exp.toLowerCase().includes(term)
+                    );
+                    this.populateSidebar();
+                });
+            },
+
+            toggleSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+                const main = document.getElementById('main-content');
+                
+                this.state.sidebarOpen = !this.state.sidebarOpen;
+                
+                if (this.state.sidebarOpen) {
+                    sidebar.classList.add('sidebar-open');
+                    overlay.classList.remove('hidden');
+                    if(window.innerWidth >= 1024) main.classList.remove('content-expanded');
+                } else {
+                    sidebar.classList.remove('sidebar-open');
+                    overlay.classList.add('hidden');
+                    if(window.innerWidth >= 1024) main.classList.add('content-expanded');
+                }
+            },
+
+            showOverview() {
+                document.getElementById('view-overview').classList.remove('hidden');
+                document.getElementById('view-question').classList.add('hidden');
+                document.getElementById('bottom-nav').classList.add('hidden');
+                
+                // Update active state in sidebar
+                document.querySelectorAll('.toc-item').forEach(el => el.classList.remove('bg-brand-100', 'border-brand-500', 'text-brand-900'));
+                document.getElementById('btn-toc-overview').classList.add('bg-brand-100', 'text-brand-700');
+                
+                if(window.innerWidth < 1024 && this.state.sidebarOpen) this.toggleSidebar();
+                window.scrollTo(0,0);
+            },
+
+            populateSidebar() {
+                const container = document.getElementById('toc-container');
+                if (this.state.filteredDb.length === 0) {
+                    container.innerHTML = '<div class="p-4 text-sm text-slate-500 text-center">找不到相關題目</div>';
+                    return;
+                }
+
+                // Group by Category
+                const cats = [
+                    { id: 1, name: '資料處理與特徵工程', icon: '🗄️' },
+                    { id: 2, name: '機器學習基礎應用', icon: '🤖' },
+                    { id: 3, name: '深度學習與進階感知', icon: '👁️' },
+                    { id: 4, name: '生成式 AI 與可解釋性', icon: '✨' },
+                    { id: 5, name: '系統落地與 AI 治理', icon: '🛡️' }
+                ];
+
+                let html = '';
+                cats.forEach(c => {
+                    const qList = this.state.filteredDb.filter(q => q.cat === c.id);
+                    if (qList.length > 0) {
+                        html += `
+                            <div class="mb-4">
+                                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 flex items-center gap-1">
+                                    <span>${c.icon}</span> ${c.name}
+                                </div>
+                                <ul class="space-y-1">
+                        `;
+                        qList.forEach(q => {
+                            html += `
+                                <li>
+                                    <button onclick="app.goToQuestion(${q.id})" id="toc-q-${q.id}" class="toc-item w-full text-left px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-md border-l-2 border-transparent transition-all truncate">
+                                        <span class="font-mono text-slate-400 mr-1">${q.id}.</span> ${q.title}
+                                    </button>
+                                </li>
+                            `;
+                        });
+                        html += `</ul></div>`;
+                    }
+                });
+                container.innerHTML = html;
+                
+                // Re-highlight if needed
+                if (!document.getElementById('view-question').classList.contains('hidden')) {
+                    this.highlightToc(this.state.currentId);
+                }
+            },
+
+            highlightToc(id) {
+                document.querySelectorAll('.toc-item').forEach(el => el.classList.remove('bg-brand-100', 'border-brand-500', 'text-brand-900', 'font-medium'));
+                document.getElementById('btn-toc-overview').classList.remove('bg-brand-100', 'text-brand-700');
+                
+                const activeEl = document.getElementById(`toc-q-${id}`);
+                if (activeEl) {
+                    activeEl.classList.add('bg-brand-100', 'border-brand-500', 'text-brand-900', 'font-medium');
+                    activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            },
+
+            goToQuestion(id) {
+                this.state.currentId = id;
+                
+                document.getElementById('view-overview').classList.add('hidden');
+                document.getElementById('view-question').classList.remove('hidden');
+                document.getElementById('bottom-nav').classList.remove('hidden');
+                document.getElementById('bottom-nav').classList.add('flex'); // Ensure it's flex
+
+                this.highlightToc(id);
+                this.renderQuestion(id);
+                this.updateNavigationControls();
+                
+                if(window.innerWidth < 1024 && this.state.sidebarOpen) this.toggleSidebar();
+                document.getElementById('main-content').scrollTo({top: 0, behavior: 'smooth'});
+            },
+
+            renderQuestion(id) {
+                const q = db.find(d => d.id === id);
+                if (!q) return;
+
+                const cats = ['無', '資料處理與特徵工程', '機器學習基礎應用', '深度學習與進階感知', '生成式 AI 與可解釋性', '系統落地與 AI 治理'];
+                
+                const optsHtml = q.opts.map(opt => {
+                    const isAns = opt.includes(`(${q.ans})`);
+                    return `
+                        <div class="flex items-start gap-3 p-3 md:p-4 rounded-xl ${isAns ? 'bg-emerald-50 border border-emerald-200' : 'bg-white border border-slate-200'} transition-all">
+                            <div class="shrink-0 mt-0.5 ${isAns ? 'text-emerald-500' : 'text-slate-300'}">
+                                ${isAns ? 
+                                    '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' : 
+                                    '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"></circle></svg>'}
+                            </div>
+                            <div class="reading-content ${isAns ? 'text-emerald-900 font-medium' : 'text-slate-600'}">${opt}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                const html = `
+                    <div class="fade-enter">
+                        <!-- Header Meta -->
+                        <div class="flex items-center gap-3 mb-6 text-sm">
+                            <span class="font-mono bg-slate-800 text-white px-3 py-1 rounded-md font-bold shadow-sm">考題 ${q.id}</span>
+                            <span class="text-slate-500 font-medium px-3 py-1 bg-white border border-slate-200 rounded-md shadow-sm hidden sm:inline-block">${cats[q.cat]}</span>
+                        </div>
+
+                        <!-- Question -->
+                        <h2 class="text-2xl md:text-3xl font-serif font-bold text-slate-900 mb-8 leading-snug tracking-wide border-b-2 border-brand-500 inline-block pb-1">${q.title}</h2>
+                        
+                        <div class="reading-content font-medium text-slate-800 mb-8 text-xl">${q.q}</div>
+                        
+                        <!-- Options -->
+                        <div class="space-y-3 mb-10 pl-2 md:pl-4 border-l border-slate-200">
+                            ${optsHtml}
+                        </div>
+
+                        <!-- Deep Explanation -->
+                        <div class="mb-16 relative">
+                            <div class="absolute -left-3 top-0 bottom-0 w-1 bg-blue-400 rounded-full"></div>
+                            <h3 class="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
+                                <span class="bg-blue-100 p-1.5 rounded-md">💡</span> 深度解析核心
+                            </h3>
+                            <div class="reading-content text-slate-700 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">${q.exp}</div>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="flex items-center gap-4 my-12 opacity-50">
+                            <hr class="flex-1 border-slate-300 border-dashed">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Enterprise Proposal Modules</span>
+                            <hr class="flex-1 border-slate-300 border-dashed">
+                        </div>
+
+                        <!-- Enterprise Proposal (E-Book Style) -->
+                        <div>
+                            <h3 class="text-2xl font-serif font-bold text-slate-900 mb-8 flex items-center gap-3">
+                                👔 AI 應用規畫師導入提案 
+                            </h3>
+                            
+                            <div class="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                                
+                                <!-- Module 1 -->
+                                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-paper bg-rose-100 text-rose-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 text-lg z-10">🔥</div>
+                                    <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border border-slate-100 shadow-sm transition hover:shadow-md">
+                                        <div class="text-xs font-bold text-rose-500 uppercase tracking-wider mb-1">Module 1</div>
+                                        <h4 class="font-bold text-slate-800 text-lg mb-2">痛點收斂</h4>
+                                        <div class="reading-content text-sm text-slate-600">${q.pain}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Module 2 -->
+                                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-paper bg-amber-100 text-amber-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 text-lg z-10">💡</div>
+                                    <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border border-slate-100 shadow-sm transition hover:shadow-md">
+                                        <div class="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1">Module 2</div>
+                                        <h4 class="font-bold text-slate-800 text-lg mb-2">解方與工具推薦</h4>
+                                        <div class="reading-content text-sm text-slate-600">${q.sol}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Module 3 -->
+                                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-paper bg-blue-100 text-blue-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 text-lg z-10">🔬</div>
+                                    <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border border-slate-100 shadow-sm transition hover:shadow-md">
+                                        <div class="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Module 3</div>
+                                        <h4 class="font-bold text-slate-800 text-lg mb-2">PoC 概念驗證設計</h4>
+                                        <div class="reading-content text-sm text-slate-600">${q.poc}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Module 4 -->
+                                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-paper bg-slate-200 text-slate-600 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 text-lg z-10">🛡️</div>
+                                    <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border border-slate-100 shadow-sm transition hover:shadow-md">
+                                        <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Module 4</div>
+                                        <h4 class="font-bold text-slate-800 text-lg mb-2">風險與法規評估</h4>
+                                        <div class="reading-content text-sm text-slate-600">${q.risk}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Module 5 -->
+                                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                    <div class="flex items-center justify-center w-12 h-12 rounded-full border-4 border-paper bg-brand-100 text-brand-600 shadow-md shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 text-2xl z-10">🤝</div>
+                                    <div class="w-[calc(100%-4rem)] md:w-[calc(50%-3rem)] bg-white p-6 rounded-2xl border-2 border-brand-100 shadow-md transition hover:shadow-lg relative overflow-hidden">
+                                        <div class="absolute -right-2 -top-2 w-16 h-16 bg-brand-50 rounded-full blur-xl"></div>
+                                        <div class="text-xs font-bold text-brand-600 uppercase tracking-wider mb-1 relative z-10">Module 5</div>
+                                        <h4 class="font-bold text-brand-900 text-lg mb-2 relative z-10">HITL 人類協作機制</h4>
+                                        <div class="reading-content text-sm text-slate-800 font-medium relative z-10">${q.human}</div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('view-question').innerHTML = html;
+            },
+
+            updateNavigationControls() {
+                const currentIndex = this.state.filteredDb.findIndex(q => q.id === this.state.currentId);
+                const total = this.state.filteredDb.length;
+                
+                const btnPrev = document.getElementById('btn-prev');
+                const btnNext = document.getElementById('btn-next');
+                const indicator = document.getElementById('page-indicator');
+
+                indicator.innerText = `${currentIndex + 1} / ${total}`;
+
+                if (currentIndex <= 0) {
+                    btnPrev.disabled = true;
+                } else {
+                    btnPrev.disabled = false;
+                }
+
+                if (currentIndex >= total - 1) {
+                    btnNext.disabled = true;
+                } else {
+                    btnNext.disabled = false;
+                }
+                
+                // Add Quick jump buttons to top nav for desktop
+                document.getElementById('top-nav-controls').innerHTML = `
+                    <button onclick="app.navigate(-1)" class="p-2 text-slate-400 hover:text-brand-600 hover:bg-slate-100 rounded-md transition-colors ${currentIndex <= 0 ? 'opacity-30 cursor-not-allowed' : ''}" ${currentIndex <= 0 ? 'disabled' : ''}>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <span class="text-xs font-mono text-slate-400 mx-2">${currentIndex + 1}/${total}</span>
+                    <button onclick="app.navigate(1)" class="p-2 text-slate-400 hover:text-brand-600 hover:bg-slate-100 rounded-md transition-colors ${currentIndex >= total - 1 ? 'opacity-30 cursor-not-allowed' : ''}" ${currentIndex >= total - 1 ? 'disabled' : ''}>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                `;
+            },
+
+            navigate(direction) {
+                const currentIndex = this.state.filteredDb.findIndex(q => q.id === this.state.currentId);
+                const nextIndex = currentIndex + direction;
+                
+                if (nextIndex >= 0 && nextIndex < this.state.filteredDb.length) {
+                    this.goToQuestion(this.state.filteredDb[nextIndex].id);
+                }
+            },
+
+            renderChart() {
+                const counts = [10, 11, 9, 10, 10]; 
+                const labels = ['資料處理與特徵工程', '機器學習基礎應用', '深度學習與進階感知', '生成式 AI 與可解釋性', '系統落地與 AI 治理'];
+                const colors = ['#3b82f6', '#10b981', '#8b5cf6', '#f43f5e', '#f59e0b'];
+                
+                const ctx = document.getElementById('overviewChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: counts,
+                            backgroundColor: colors,
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { 
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                padding: 12,
+                                bodyFont: { size: 14, family: "'Inter', sans-serif" },
+                                callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw} 題 (${(ctx.raw/50*100).toFixed(0)}%)` } 
+                            }
+                        },
+                        cutout: '75%'
+                    }
+                });
+
+                const legendHtml = labels.map((label, i) => `
+                    <div class="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100 hover:bg-white hover:shadow-sm transition cursor-pointer" onclick="app.filterAndGo(${i+1})">
+                        <div class="flex items-center gap-3">
+                            <span class="w-3 h-3 rounded-full shadow-sm" style="background-color: ${colors[i]}"></span>
+                            <span class="font-medium text-slate-700">${label}</span>
+                        </div>
+                        <span class="font-mono font-bold text-slate-400 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-100">${counts[i]} 題</span>
+                    </div>
+                `).join('');
+                document.getElementById('chart-legend').innerHTML = `<div class="space-y-3">${legendHtml}</div>`;
+            },
+            
+            filterAndGo(catId) {
+                // Quick jump from overview chart
+                this.state.search = '';
+                document.getElementById('search-input').value = '';
+                this.state.filteredDb = db.filter(q => q.cat === catId);
+                this.populateSidebar();
+                if(this.state.filteredDb.length > 0) {
+                    this.goToQuestion(this.state.filteredDb[0].id);
+                }
+            }
+        };
+
+        // Boot
+        window.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>
